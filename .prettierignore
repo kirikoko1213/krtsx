@@ -1,0 +1,12 @@
+node_modules
+dist
+release
+.git
+.vscode
+.idea
+*.log
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+.DS_Store
+Thumbs.db 

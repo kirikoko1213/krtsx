@@ -1,0 +1,53 @@
+{
+  "name": "script-manager-electron",
+  "version": "1.0.0",
+  "description": "一个用于管理和执行脚本的Electron应用程序",
+  "main": "dist/main.js",
+  "scripts": {
+    "dev": "concurrently \"npm run dev:main\" \"npm run dev:renderer\"",
+    "dev:main": "tsc -p tsconfig.main.json && electron dist/main.js --dev",
+    "dev:renderer": "vite",
+    "build": "npm run build:main && npm run build:renderer",
+    "build:main": "tsc -p tsconfig.main.json",
+    "build:renderer": "vite build",
+    "dist": "npm run build && electron-builder",
+    "postinstall": "electron-builder install-app-deps",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint:fix": "npm run format"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.6",
+    "@vitejs/plugin-vue": "^5.0.2",
+    "concurrently": "^8.2.2",
+    "electron": "^28.1.0",
+    "electron-builder": "^24.9.1",
+    "prettier": "^3.1.1",
+    "typescript": "^5.3.3",
+    "vite": "^5.0.10"
+  },
+  "dependencies": {
+    "vue": "^3.4.5",
+    "node-cron": "^3.0.3",
+    "@types/node-cron": "^3.0.11"
+  },
+  "build": {
+    "appId": "com.electron.script-manager",
+    "productName": "脚本管理器",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*"
+    ],
+    "mac": {
+      "category": "public.app-category.utilities"
+    },
+    "win": {
+      "target": "nsis"
+    },
+    "linux": {
+      "target": "AppImage"
+    }
+  }
+} 
