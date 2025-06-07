@@ -9,9 +9,11 @@ alwaysApply: true
 
 ## 主要目录结构
 - `electron/` - Electron 主进程代码
-  - [main.ts](mdc:electron/main.ts) - 主进程入口文件
-  - `preload.js` - 预加载脚本
-- `src/` - 渲染进程代码
+  - [main.ts](mdc:electron/main.ts) - 主进程入口文件，包含IPC通信和API集成
+  - [preload.ts](mdc:electron/preload.ts) - 预加载脚本，定义渲染进程API
+- `src/` - 渲染进程代码（Vue 3 + TypeScript）
+  - `components/` - Vue 组件
+  - `composables/` - Vue 组合式函数
 - `dist/` - 构建输出目录
 
 ## 配置文件
@@ -24,5 +26,8 @@ alwaysApply: true
 - 使用 yarn 进行包管理
 
 ## 主要功能
-- 脚本管理
-- 其他...
+- 脚本管理系统
+- 多主题系统
+- 天气API集成
+- 系统信息监控
+- 设置页面管理

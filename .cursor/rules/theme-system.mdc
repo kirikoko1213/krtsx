@@ -1,0 +1,62 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# 主题系统指南
+
+## 主题配置文件
+- [useTheme.ts](mdc:src/composables/useTheme.ts) - 主题管理组合式函数，包含所有主题定义
+
+## 可用主题
+1. **默认主题** - 经典蓝色商务风格
+2. **少女色主题** - 温柔粉色系
+3. **清新水色主题** - 清爽青绿色系  
+4. **深色主题** - 深色护眼模式
+5. **马卡龙主题** - 甜美糖果色系
+
+## CSS 变量系统
+所有组件都使用 CSS 变量进行主题适配：
+
+### 主要颜色变量
+- `--color-primary` - 主色调
+- `--color-secondary` - 辅助色
+- `--color-success` - 成功状态色
+- `--color-warning` - 警告色
+- `--color-error` - 错误色
+- `--color-info` - 信息色
+
+### 表面和背景色
+- `--color-surface` - 主要表面色
+- `--color-surface-light` - 浅色表面
+- `--color-background` - 页面背景色
+
+### 文字颜色
+- `--color-text-primary` - 主要文字
+- `--color-text-secondary` - 次要文字  
+- `--color-text-muted` - 弱化文字
+
+### 边框和阴影
+- `--color-border` - 主要边框
+- `--color-border-light` - 浅色边框
+- `--color-shadow` - 阴影色
+- `--color-shadow-light` - 浅色阴影
+
+## 使用方式
+```typescript
+import { useTheme } from '@/composables/useTheme'
+
+const { currentTheme, setTheme, themes } = useTheme()
+
+// 切换主题
+setTheme('macaron')
+```
+
+## 组件适配
+所有组件样式都应使用 CSS 变量，避免硬编码颜色：
+```css
+.component {
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border);
+}

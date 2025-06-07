@@ -1,0 +1,85 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# API 集成指南
+
+## Electron IPC 通信
+
+### 主进程 API
+[main.ts](mdc:electron/main.ts) 定义了以下 IPC 处理程序：
+
+#### 系统信息
+- `get-system-info` - 获取系统基本信息
+- `get-network-info` - 获取网络信息（本地IP、公网IP）
+
+#### 脚本管理
+- `get-script-configs` - 获取所有脚本配置
+- `save-script-config` - 保存/更新脚本配置
+- `delete-script-config` - 删除脚本配置
+- `run-script` - 执行脚本
+- `stop-script` - 停止脚本
+
+#### 应用设置
+- `get-app-settings` - 获取应用设置
+- `save-app-settings` - 保存应用设置
+- `select-file` - 文件选择对话框
+
+#### 天气服务
+- `get-weather` - 获取天气信息（集成聚合数据API）
+
+### 渲染进程 API
+[preload.ts](mdc:electron/preload.ts) 暴露给渲染进程的 API：
+
+```typescript
+window.electronAPI = {
+  // 系统信息
+  getSystemInfo: () => ipcRenderer.invoke('get-system-info'),
+  getNetworkInfo: () => ipcRenderer.invoke('get-network-info'),
+  
+  // 脚本管理
+  getScriptConfigs: () => ipcRenderer.invoke('get-script-configs'),
+  saveScriptConfig: (config) => ipcRenderer.invoke('save-script-config', config),
+  
+  // 天气服务
+  getWeather: (city) => ipcRenderer.invoke('get-weather', city),
+  
+  // 其他...
+}
+```
+
+## 外部 API 集成
+
+### 天气 API
+- **提供商**: 聚合数据 (juhe.cn)
+- **接口**: `http://apis.juhe.cn/simpleWeather/query`
+- **认证**: API Key（在设置页面配置）
+- **参数**: 
+  - `city` - 城市名称
+  - `key` - API密钥
+
+### API 错误处理
+```typescript
+try {
+  const result = await window.electronAPI.getWeather(city)
+  if (result.success) {
+    // 处理成功数据
+  } else {
+    // 处理错误信息
+    console.error(result.error)
+  }
+} catch (error) {
+  // 处理异常
+}
+```
+
+## 类型定义
+[vite-env.d.ts](mdc:src/vite-env.d.ts) 包含所有 API 的 TypeScript 类型定义。
+
+## 最佳实践
+1. 所有 IPC 调用都应该是异步的
+2. 使用 try-catch 处理错误
+3. 在 UI 中提供加载状态
+4. 超时控制（特别是外部 API）
+5. 用户友好的错误提示

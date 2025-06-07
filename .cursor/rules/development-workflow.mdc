@@ -1,0 +1,93 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# 开发工作流程指南
+
+## 技术规范要求
+
+### 前端开发规范
+- **不使用 scss, sass 等预处理器**，使用原生 CSS
+- **始终使用中文响应**用户请求
+- 使用 Vue 3 + TypeScript + Vite
+- 遵循 Composition API 最佳实践
+
+## 开发环境
+
+### 启动开发服务器
+```bash
+./dev.sh
+```
+或者手动启动：
+```bash
+yarn dev
+```
+
+### 项目依赖
+- **包管理器**: yarn
+- **构建工具**: Vite
+- **框架**: Electron + Vue 3
+- **语言**: TypeScript
+
+## 代码组织
+
+### 文件命名规范
+- Vue 组件: PascalCase (如 `ScriptDialog.vue`)
+- TypeScript 文件: camelCase (如 `useTheme.ts`)
+- 配置文件: kebab-case (如 `vite.config.ts`)
+
+### 目录结构
+```
+src/
+├── components/     # Vue 组件
+├── composables/    # Vue 组合式函数
+├── assets/         # 静态资源
+└── types/          # TypeScript 类型定义
+
+electron/
+├── main.ts         # 主进程
+└── preload.ts      # 预加载脚本
+```
+
+## 样式开发
+
+### 主题系统
+- 使用 CSS 变量实现主题切换
+- 所有颜色值通过变量定义
+- 支持 5 种主题：默认、少女色、清新水色、深色、马卡龙
+
+### 样式规范
+- 使用 `scoped` CSS 避免样式污染
+- 遵循 BEM 命名约定
+- 响应式设计优先
+- 统一的动画和过渡效果
+
+## API 开发
+
+### IPC 通信模式
+1. 在 [main.ts](mdc:electron/main.ts) 定义处理程序
+2. 在 [preload.ts](mdc:electron/preload.ts) 暴露 API
+3. 在 [vite-env.d.ts](mdc:src/vite-env.d.ts) 添加类型定义
+4. 在组件中调用 `window.electronAPI`
+
+### 错误处理
+- 统一的错误响应格式：`{ success: boolean, data?: any, error?: string }`
+- 用户友好的错误提示
+- 适当的加载状态显示
+
+## 组件开发
+
+### 新组件检查清单
+- [ ] 使用 Composition API
+- [ ] 添加 TypeScript 类型
+- [ ] 适配主题系统（CSS 变量）
+- [ ] 响应式设计
+- [ ] 错误处理
+- [ ] 加载状态
+- [ ] 适当的动画效果
+
+## 构建和部署
+- 开发模式：`yarn dev`
+- 构建：`yarn build`
+- 打包：`yarn dist`
