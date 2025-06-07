@@ -3,6 +3,11 @@ import { spawn, ChildProcess } from 'child_process'
 import * as path from 'path'
 import * as fs from 'fs'
 import * as cron from 'node-cron'
+import * as os from 'os'
+import { exec } from 'child_process'
+import { promisify } from 'util'
+
+const execAsync = promisify(exec)
 
 let mainWindow: BrowserWindow
 const isDev = process.argv.includes('--dev')
@@ -12,6 +17,9 @@ const configPath = path.join(app.getPath('userData'), 'scripts-config.json')
 
 // 存储定时任务的映射
 const cronJobs = new Map<string, cron.ScheduledTask>()
+
+// 存储正在运行的脚本进程
+const runningProcesses = new Map<string, ChildProcess>()
 
 interface ScriptConfig {
   id: string
@@ -128,6 +136,9 @@ function setupIpcHandlers() {
         stdio: ['pipe', 'pipe', 'pipe']
       })
 
+      // 将子进程存储起来，以便后续可以停止
+      runningProcesses.set(scriptConfig.id, child)
+
       let output = ''
       let error = ''
 
@@ -144,6 +155,8 @@ function setupIpcHandlers() {
       })
 
       child.on('close', (code) => {
+        // 从运行进程映射中移除
+        runningProcesses.delete(scriptConfig.id)
         resolve({
           success: code === 0,
           output,
@@ -153,6 +166,8 @@ function setupIpcHandlers() {
       })
 
       child.on('error', (err) => {
+        // 从运行进程映射中移除
+        runningProcesses.delete(scriptConfig.id)
         resolve({
           success: false,
           error: err.message
@@ -203,6 +218,129 @@ function setupIpcHandlers() {
       }
       
       return { success: true }
+    } catch (error) {
+      return { success: false, error: (error as Error).message }
+    }
+  })
+
+  // 停止脚本执行
+  ipcMain.handle('stop-script', async (event, scriptId: string) => {
+    try {
+      const process = runningProcesses.get(scriptId)
+      if (process && !process.killed) {
+        // 尝试优雅地停止进程
+        process.kill('SIGTERM')
+        
+        // 如果5秒后进程仍未结束，强制终止
+        setTimeout(() => {
+          if (!process.killed) {
+            process.kill('SIGKILL')
+          }
+        }, 5000)
+        
+        return { success: true, message: '脚本停止中...' }
+      } else {
+        return { success: false, error: '脚本未在运行或已停止' }
+      }
+    } catch (error) {
+      return { success: false, error: (error as Error).message }
+    }
+  })
+
+  // 获取正在运行的脚本列表
+  ipcMain.handle('get-running-scripts', async () => {
+    const runningScriptIds = Array.from(runningProcesses.keys()).filter(id => {
+      const process = runningProcesses.get(id)
+      return process && !process.killed
+    })
+    return runningScriptIds
+  })
+
+  // 获取系统信息
+  ipcMain.handle('get-system-info', async () => {
+    try {
+      const systemInfo = {
+        platform: os.platform(),
+        arch: os.arch(),
+        hostname: os.hostname(),
+        osType: os.type(),
+        osVersion: os.release(),
+        totalMemory: os.totalmem(),
+        freeMemory: os.freemem(),
+        cpus: os.cpus(),
+        uptime: os.uptime(),
+        loadavg: os.loadavg(),
+        networkInterfaces: os.networkInterfaces()
+      }
+      return { success: true, data: systemInfo }
+    } catch (error) {
+      return { success: false, error: (error as Error).message }
+    }
+  })
+
+  // 获取本地IP地址
+  ipcMain.handle('get-local-ip', async () => {
+    try {
+      const interfaces = os.networkInterfaces()
+      const localIPs: string[] = []
+      
+      for (const interfaceName in interfaces) {
+        const interfaceInfo = interfaces[interfaceName]
+        if (interfaceInfo) {
+          for (const net of interfaceInfo) {
+            if (net.family === 'IPv4' && !net.internal) {
+              localIPs.push(net.address)
+            }
+          }
+        }
+      }
+      
+      return { success: true, data: localIPs }
+    } catch (error) {
+      return { success: false, error: (error as Error).message }
+    }
+  })
+
+  // 获取外网IP地址
+  ipcMain.handle('get-public-ip', async () => {
+    try {
+      // 使用多个服务作为备选
+      const services = [
+        'curl -s ifconfig.me',
+        'curl -s ipinfo.io/ip',
+        'curl -s api.ipify.org'
+      ]
+      
+      for (const service of services) {
+        try {
+          const { stdout } = await execAsync(service, { timeout: 5000 })
+          const ip = stdout.trim()
+          if (ip && /^\d+\.\d+\.\d+\.\d+$/.test(ip)) {
+            return { success: true, data: ip }
+          }
+        } catch (err) {
+          continue // 尝试下一个服务
+        }
+      }
+      
+      return { success: false, error: '无法获取外网IP' }
+    } catch (error) {
+      return { success: false, error: (error as Error).message }
+    }
+  })
+
+  // 获取磁盘使用情况
+  ipcMain.handle('get-disk-usage', async () => {
+    try {
+      let command = ''
+      if (process.platform === 'win32') {
+        command = 'wmic logicaldisk get size,freespace,caption'
+      } else {
+        command = 'df -h'
+      }
+      
+      const { stdout } = await execAsync(command)
+      return { success: true, data: stdout }
     } catch (error) {
       return { success: false, error: (error as Error).message }
     }

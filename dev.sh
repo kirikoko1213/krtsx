@@ -1,5 +1,8 @@
 #!/bin/bash
 
+kc port -k 3000
+pkill -f electron*
+
 # 确保目录存在
 mkdir -p dist
 

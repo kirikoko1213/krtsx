@@ -33,7 +33,7 @@
   },
   "build": {
     "appId": "com.electron.script-manager",
-    "productName": "脚本管理器",
+    "productName": "krtsx",
     "directories": {
       "output": "release"
     },

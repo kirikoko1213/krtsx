@@ -18,6 +18,23 @@ interface Window {
       error?: string
       exitCode?: number
     }>
+    stopScript: (scriptId: string) => Promise<{
+      success: boolean
+      error?: string
+    }>
+    getRunningScripts: () => Promise<any[]>
+    getSystemInfo: () => Promise<{
+      success: boolean
+      data: any
+    }>
+    getLocalIP: () => Promise<{
+      success: boolean
+      data: any
+    }>
+    getPublicIP: () => Promise<{
+      success: boolean
+      data: any
+    }>
     saveScriptConfig: (config: any) => Promise<{
       success: boolean
       error?: string

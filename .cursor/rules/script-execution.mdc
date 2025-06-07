@@ -1,0 +1,35 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# 脚本执行规则
+
+## 支持的脚本类型
+- `.bat` / `.cmd` - Windows 批处理文件
+- `.sh` - Shell 脚本
+- `.py` - Python 脚本
+- `.js` - Node.js 脚本
+- `.ps1` - PowerShell 脚本
+
+## 脚本配置结构
+```typescript
+interface ScriptConfig {
+  id: string          // 脚本唯一标识
+  name: string        // 脚本名称
+  type: 'file' | 'command'  // 脚本类型
+  path?: string       // 文件路径（当 type 为 'file' 时）
+  command?: string    // 命令字符串（当 type 为 'command' 时）
+  cronExpression?: string  // 定时表达式
+  enabled: boolean    // 是否启用
+  autoStart: boolean  // 是否自动启动
+}
+```
+
+## 执行流程
+1. 脚本配置保存在用户数据目录的 `scripts-config.json` 中
+2. 执行时根据脚本类型选择合适的执行器
+3. 输出通过 IPC 通道实时发送到渲染进程
+
+## 相关文件
+- [main.ts](mdc:electron/main.ts) - 包含脚本执行逻辑

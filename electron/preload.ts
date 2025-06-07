@@ -30,11 +30,19 @@ const electronAPI = {
   
   // 脚本执行
   executeScript: (config: ScriptConfig) => ipcRenderer.invoke('execute-script', config),
+  stopScript: (scriptId: string) => ipcRenderer.invoke('stop-script', scriptId),
+  getRunningScripts: () => ipcRenderer.invoke('get-running-scripts'),
   
   // 脚本配置管理
   saveScriptConfig: (config: ScriptConfig) => ipcRenderer.invoke('save-script-config', config),
   getScriptConfigs: () => ipcRenderer.invoke('get-script-configs'),
   deleteScriptConfig: (id: string) => ipcRenderer.invoke('delete-script-config', id),
+  
+  // 系统信息
+  getSystemInfo: () => ipcRenderer.invoke('get-system-info'),
+  getLocalIP: () => ipcRenderer.invoke('get-local-ip'),
+  getPublicIP: () => ipcRenderer.invoke('get-public-ip'),
+  getDiskUsage: () => ipcRenderer.invoke('get-disk-usage'),
   
   // 事件监听
   onScriptOutput: (callback: (output: ScriptOutput) => void) => {

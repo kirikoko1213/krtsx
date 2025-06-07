@@ -1,0 +1,28 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# 项目结构指南
+
+这是一个基于 Electron 的个人面板管理应用程序。主要组件包括：
+
+## 主要目录结构
+- `electron/` - Electron 主进程代码
+  - [main.ts](mdc:electron/main.ts) - 主进程入口文件
+  - `preload.js` - 预加载脚本
+- `src/` - 渲染进程代码
+- `dist/` - 构建输出目录
+
+## 配置文件
+- [package.json](mdc:package.json) - 项目依赖和脚本配置
+- [tsconfig.json](mdc:tsconfig.json) - TypeScript 配置
+- [vite.config.ts](mdc:vite.config.ts) - Vite 构建配置
+
+## 开发工具
+- [dev.sh](mdc:dev.sh) - 开发环境启动脚本
+- 使用 yarn 进行包管理
+
+## 主要功能
+- 脚本管理
+- 其他...
