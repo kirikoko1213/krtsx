@@ -35,6 +35,38 @@ interface Window {
       success: boolean
       data: any
     }>
+    getWeather: (city?: string) => Promise<{
+      success: boolean
+      data?: any
+      error?: string
+    }>
+    selectBackgroundImage: () => Promise<{
+      canceled: boolean
+      filePaths: string[]
+    }>
+    saveBackgroundImage: (sourcePath: string) => Promise<{
+      success: boolean
+      data?: string
+      error?: string
+    }>
+    getBackgroundImageData: (fileName: string) => Promise<{
+      success: boolean
+      data?: string
+      error?: string
+    }>
+    saveAppSettings: (settings: any) => Promise<{
+      success: boolean
+      error?: string
+    }>
+    getAppSettings: () => Promise<{
+      success: boolean
+      data?: any
+      error?: string
+    }>
+    deleteBackgroundImage: (fileName: string) => Promise<{
+      success: boolean
+      error?: string
+    }>
     saveScriptConfig: (config: any) => Promise<{
       success: boolean
       error?: string

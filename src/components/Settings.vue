@@ -5,9 +5,22 @@
       <p class="settings-description">个性化你的应用体验</p>
     </div>
 
+    <!-- 设置页面Tab导航 -->
+    <div class="settings-tabs">
+      <button
+        v-for="tab in settingsTabs"
+        :key="tab.id"
+        :class="['tab-button', { active: activeTab === tab.id }]"
+        @click="activeTab = tab.id"
+      >
+        <span class="tab-icon">{{ tab.icon }}</span>
+        <span class="tab-text">{{ tab.name }}</span>
+      </button>
+    </div>
+
     <div class="settings-content">
       <!-- 背景设置面板 -->
-      <div class="setting-panel">
+      <div v-show="activeTab === 'background'" class="setting-panel">
         <div class="panel-header">
           <h3>🖼️ 背景设置</h3>
           <div class="panel-actions">
@@ -127,8 +140,64 @@
         </div>
       </div>
 
-      <!-- 其他设置面板 -->
-      <div class="setting-panel">
+      <!-- 天气设置面板 -->
+      <div v-show="activeTab === 'weather'" class="setting-panel">
+        <div class="panel-header">
+          <h3>🌤️ 天气设置</h3>
+        </div>
+
+        <div class="setting-grid">
+          <!-- 天气API Key -->
+          <div class="setting-item full-width">
+            <label class="setting-label">聚合数据天气API Key</label>
+            <div class="input-with-help">
+              <input
+                v-model="weatherSettings.apiKey"
+                type="text"
+                placeholder="请输入聚合数据的天气API Key"
+                class="form-input"
+              />
+              <div class="input-help">
+                <p>📍 <strong>获取步骤:</strong></p>
+                <ol>
+                  <li>访问 <a href="https://www.juhe.cn/" target="_blank">聚合数据官网</a></li>
+                  <li>注册账号并登录</li>
+                  <li>搜索"简易天气"接口</li>
+                  <li>申请接口获取App Key</li>
+                  <li>将App Key填入上方输入框</li>
+                </ol>
+                <p class="note">💡 每天有免费调用次数，通常足够个人使用</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- 默认城市 -->
+          <div class="setting-item">
+            <label class="setting-label">默认城市</label>
+            <input
+              v-model="weatherSettings.defaultCity"
+              type="text"
+              placeholder="输入城市名称"
+              class="form-input"
+            />
+          </div>
+
+          <!-- 测试按钮 -->
+          <div class="setting-item">
+            <label class="setting-label">连接测试</label>
+            <button 
+              class="btn btn-primary" 
+              @click="testWeatherAPI" 
+              :disabled="!weatherSettings.apiKey"
+            >
+              测试天气API
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 界面设置面板 -->
+      <div v-show="activeTab === 'ui'" class="setting-panel">
         <div class="panel-header">
           <h3>🎨 界面设置</h3>
         </div>
@@ -246,6 +315,20 @@ const uiSettings = reactive<UISettings>({
 const backgroundPreviewUrl = ref('')
 const isPreview = ref(false)
 const showSaveSuccess = ref(false)
+
+// Tab 管理
+const activeTab = ref('background')
+const settingsTabs = [
+  { id: 'background', name: '背景设置', icon: '🖼️' },
+  { id: 'weather', name: '天气设置', icon: '🌤️' },
+  { id: 'ui', name: '界面设置', icon: '🎨' }
+]
+
+// 天气设置
+const weatherSettings = reactive({
+  apiKey: '',
+  defaultCity: '北京'
+})
 
 // 生命周期
 onMounted(() => {
@@ -471,12 +554,36 @@ function resetBackground() {
   removeBackgroundSettings()
 }
 
+// 测试天气API
+async function testWeatherAPI() {
+  if (!weatherSettings.apiKey) {
+    alert('请先设置API Key')
+    return
+  }
+  
+  try {
+    // 先保存当前设置以便测试
+    await saveSettings()
+    
+    const result = await window.electronAPI.getWeather(weatherSettings.defaultCity)
+    if (result.success) {
+      alert(`天气API测试成功！\n城市: ${result.data.cityName}\n天气: ${result.data.weather}\n温度: ${result.data.temperature}°C`)
+    } else {
+      alert(`天气API测试失败: ${result.error}`)
+    }
+  } catch (error) {
+    alert(`测试失败: ${error}`)
+  }
+}
+
 // 保存设置
 async function saveSettings() {
   try {
     const settings = {
       background: { ...backgroundSettings },
-      ui: { ...uiSettings }
+      ui: { ...uiSettings },
+      weatherApiKey: weatherSettings.apiKey,
+      defaultCity: weatherSettings.defaultCity
     }
     
     const result = await window.electronAPI.saveAppSettings(settings)
@@ -513,6 +620,14 @@ async function loadSettings() {
       // 加载UI设置
       if (settings.ui) {
         Object.assign(uiSettings, settings.ui)
+      }
+      
+      // 加载天气设置
+      if (settings.weatherApiKey) {
+        weatherSettings.apiKey = settings.weatherApiKey
+      }
+      if (settings.defaultCity) {
+        weatherSettings.defaultCity = settings.defaultCity
       }
       
       // 应用加载的设置
@@ -555,9 +670,107 @@ async function loadSettings() {
   margin: 0;
 }
 
+.settings-tabs {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-bottom: 2rem;
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: 1rem;
+}
+
+.tab-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+}
+
+.tab-button:hover {
+  background: var(--color-surface-light);
+  color: var(--color-text-primary);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px var(--color-shadow-light);
+}
+
+.tab-button.active {
+  background: var(--color-primary);
+  color: white;
+  border-color: var(--color-primary);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px var(--color-shadow);
+}
+
+.tab-icon {
+  font-size: 1.1rem;
+}
+
+.tab-text {
+  font-size: 0.9rem;
+}
+
 .settings-content {
   max-width: 800px;
   margin: 0 auto;
+}
+
+/* 天气设置专用样式 */
+.full-width {
+  grid-column: 1 / -1;
+}
+
+.input-with-help {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.input-help {
+  background: var(--color-surface);
+  padding: 1rem;
+  border-radius: 6px;
+  border-left: 4px solid var(--color-info);
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+.input-help p {
+  margin: 0 0 0.5rem 0;
+  color: var(--color-text-primary);
+}
+
+.input-help ol {
+  margin: 0.5rem 0;
+  padding-left: 1.5rem;
+  color: var(--color-text-secondary);
+}
+
+.input-help li {
+  margin-bottom: 0.25rem;
+}
+
+.input-help a {
+  color: var(--color-primary);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.input-help a:hover {
+  text-decoration: underline;
+}
+
+.input-help .note {
+  color: var(--color-text-muted);
+  font-style: italic;
+  margin-top: 0.5rem;
+  margin-bottom: 0;
 }
 
 /* 设置面板 */

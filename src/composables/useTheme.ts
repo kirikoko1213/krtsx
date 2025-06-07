@@ -200,6 +200,44 @@ export const themes: ThemeConfig[] = [
       running: '#4ade80',
       runningBg: 'rgba(74, 222, 128, 0.1)'
     }
+  },
+  {
+    id: 'macaron',
+    name: '马卡龙主题',
+    colors: {
+      primary: '#ff9a9e',
+      primaryLight: '#fff5f5',
+      primaryDark: '#ff6b6b',
+      secondary: '#a8e6cf',
+      
+      background: '#fefefe',
+      surface: '#fdf9f9',
+      surfaceLight: '#fffafa',
+      
+      textPrimary: '#5d4e75',
+      textSecondary: '#8b7ca3',
+      textMuted: '#b4a7c1',
+      
+      border: '#f2e9e4',
+      borderLight: '#f9f4f0',
+      
+      success: '#a8e6cf',
+      warning: '#ffd93d',
+      error: '#ff9a9e',
+      info: '#aec6cf',
+      
+      buttonPrimary: '#ff9a9e',
+      buttonSecondary: '#d4b3d9',
+      buttonSuccess: '#a8e6cf',
+      buttonWarning: '#ffd93d',
+      buttonDanger: '#ff9a9e',
+      
+      shadow: 'rgba(255, 154, 158, 0.12)',
+      shadowLight: 'rgba(255, 154, 158, 0.06)',
+      
+      running: '#a8e6cf',
+      runningBg: 'rgba(168, 230, 207, 0.12)'
+    }
   }
 ]
 

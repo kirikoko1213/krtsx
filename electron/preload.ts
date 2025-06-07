@@ -44,6 +44,9 @@ const electronAPI = {
   getPublicIP: () => ipcRenderer.invoke('get-public-ip'),
   getDiskUsage: () => ipcRenderer.invoke('get-disk-usage'),
   
+  // 天气信息
+  getWeather: (city?: string) => ipcRenderer.invoke('get-weather', city),
+  
   // 转码工具
   base64Encode: (text: string) => ipcRenderer.invoke('base64-encode', text),
   base64Decode: (base64: string) => ipcRenderer.invoke('base64-decode', base64),

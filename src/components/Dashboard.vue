@@ -15,10 +15,10 @@
       <div class="quick-actions">
         <button class="action-btn" @click="refreshAll">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-            <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
-            <path d="M21 3v5h-5"/>
-            <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
-            <path d="M3 21v-5h5"/>
+            <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
+            <path d="M21 3v5h-5" />
+            <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
+            <path d="M3 21v-5h5" />
           </svg>
           刷新
         </button>
@@ -32,17 +32,38 @@
         <div class="card-header">
           <h3>
             <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-              <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/>
+              <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z" />
             </svg>
             天气信息
           </h3>
-          <span class="status-indicator" :class="{ active: weatherLoading }"></span>
+          <div class="header-actions">
+            <button
+              class="refresh-btn"
+              @click="loadWeatherData"
+              :disabled="weatherLoading"
+              title="刷新天气"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                :class="{ spinning: weatherLoading }"
+              >
+                <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
+                <path d="M21 3v5h-5" />
+                <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
+                <path d="M3 21v-5h5" />
+              </svg>
+            </button>
+            <span class="status-indicator" :class="{ active: weatherLoading }"></span>
+          </div>
         </div>
         <div class="card-content">
           <div v-if="weatherData" class="weather-info">
             <div class="weather-main">
               <div class="temperature">{{ weatherData.temperature }}°C</div>
               <div class="weather-desc">{{ weatherData.description }}</div>
+              <div class="weather-location">{{ weatherData.location }}</div>
             </div>
             <div class="weather-details">
               <div class="detail-item">
@@ -50,16 +71,19 @@
                 <span class="value">{{ weatherData.humidity }}%</span>
               </div>
               <div class="detail-item">
-                <span class="label">风速</span>
-                <span class="value">{{ weatherData.windSpeed }} km/h</span>
+                <span class="label">风力</span>
+                <span class="value">{{ weatherData.windSpeed }}</span>
               </div>
             </div>
           </div>
-          <div v-else class="placeholder-content">
-            <p>{{ weatherLoading ? '正在获取天气信息...' : '天气API待配置' }}</p>
-            <button v-if="!weatherLoading" class="btn btn-sm btn-primary" @click="loadWeatherData">
-              获取天气
-            </button>
+          <div v-else-if="weatherLoading" class="placeholder-content">
+            <div class="loading-spinner"></div>
+            <p>正在获取天气信息...</p>
+          </div>
+          <div v-else-if="weatherError" class="error-content">
+            <div class="error-icon">⚠️</div>
+            <p class="error-message">{{ weatherError }}</p>
+            <button class="btn btn-sm btn-primary" @click="loadWeatherData">重新获取</button>
           </div>
         </div>
       </div>
@@ -69,10 +93,12 @@
         <div class="card-header">
           <h3>
             <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-              <path d="M9.75 3.4l4.5 0a5.85 5.85 0 0 1 5.85 5.85l0 5.4a5.85 5.85 0 0 1-5.85 5.85l-4.5 0a5.85 5.85 0 0 1-5.85-5.85l0-5.4a5.85 5.85 0 0 1 5.85-5.85z"/>
-              <path d="M9 9l.01 0"/>
-              <path d="M15 15l.01 0"/>
-              <path d="M15 9l-6 6"/>
+              <path
+                d="M9.75 3.4l4.5 0a5.85 5.85 0 0 1 5.85 5.85l0 5.4a5.85 5.85 0 0 1-5.85 5.85l-4.5 0a5.85 5.85 0 0 1-5.85-5.85l0-5.4a5.85 5.85 0 0 1 5.85-5.85z"
+              />
+              <path d="M9 9l.01 0" />
+              <path d="M15 15l.01 0" />
+              <path d="M15 9l-6 6" />
             </svg>
             网络信息
           </h3>
@@ -84,13 +110,13 @@
               <span class="ip-label">外网IP</span>
               <span class="ip-value" :class="{ loading: networkLoading }">
                 {{ publicIP || '获取中...' }}
+                <button v-if="publicIP" class="copy-btn" @click="copyToClipboard(publicIP)">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
+                    <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
+                  </svg>
+                </button>
               </span>
-              <button v-if="publicIP" class="copy-btn" @click="copyToClipboard(publicIP)">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                  <rect width="14" height="14" x="8" y="8" rx="2" ry="2"/>
-                  <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>
-                </svg>
-              </button>
             </div>
             <div class="ip-item">
               <span class="ip-label">本地IP</span>
@@ -99,8 +125,8 @@
                   {{ ip }}
                   <button class="copy-btn" @click="copyToClipboard(ip)">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                      <rect width="14" height="14" x="8" y="8" rx="2" ry="2"/>
-                      <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>
+                      <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
+                      <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
                     </svg>
                   </button>
                 </div>
@@ -115,9 +141,9 @@
         <div class="card-header">
           <h3>
             <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-              <rect width="20" height="14" x="2" y="3" rx="2"/>
-              <line x1="8" y1="21" x2="16" y2="21"/>
-              <line x1="12" y1="17" x2="12" y2="21"/>
+              <rect width="20" height="14" x="2" y="3" rx="2" />
+              <line x1="8" y1="21" x2="16" y2="21" />
+              <line x1="12" y1="17" x2="12" y2="21" />
             </svg>
             系统信息
           </h3>
@@ -153,8 +179,8 @@
         <div class="card-header">
           <h3>
             <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-              <path d="M3 3v18h18"/>
-              <path d="M18 17l-5-5-4 4-3-3"/>
+              <path d="M3 3v18h18" />
+              <path d="M18 17l-5-5-4 4-3-3" />
             </svg>
             性能监控
           </h3>
@@ -171,7 +197,8 @@
                 <div class="progress-fill" :style="{ width: getMemoryUsagePercent() + '%' }"></div>
               </div>
               <div class="metric-details">
-                {{ formatBytes(systemInfo.totalMemory - systemInfo.freeMemory) }} / {{ formatBytes(systemInfo.totalMemory) }}
+                {{ formatBytes(systemInfo.totalMemory - systemInfo.freeMemory) }} /
+                {{ formatBytes(systemInfo.totalMemory) }}
               </div>
             </div>
             <div class="metric-item">
@@ -192,8 +219,8 @@
         <div class="card-header">
           <h3>
             <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-              <polyline points="4,17 10,11 4,5"/>
-              <line x1="12" y1="19" x2="20" y2="19"/>
+              <polyline points="4,17 10,11 4,5" />
+              <line x1="12" y1="19" x2="20" y2="19" />
             </svg>
             脚本状态
           </h3>
@@ -227,7 +254,9 @@
         <div class="card-header">
           <h3>
             <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+              <path
+                d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
+              />
             </svg>
             快速操作
           </h3>
@@ -236,30 +265,30 @@
           <div class="action-buttons">
             <button class="action-button" @click="openTerminal">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <polyline points="4,17 10,11 4,5"/>
-                <line x1="12" y1="19" x2="20" y2="19"/>
+                <polyline points="4,17 10,11 4,5" />
+                <line x1="12" y1="19" x2="20" y2="19" />
               </svg>
               <span>终端</span>
             </button>
             <button class="action-button" @click="openSystemMonitor">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <path d="M3 3v18h18"/>
-                <path d="M18 17l-5-5-4 4-3-3"/>
+                <path d="M3 3v18h18" />
+                <path d="M18 17l-5-5-4 4-3-3" />
               </svg>
               <span>系统监控</span>
             </button>
             <button class="action-button" @click="openNetworkSettings">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <circle cx="12" cy="12" r="3"/>
-                <path d="M12 1v6m0 6v6"/>
-                <path d="m21 12-6 0m-6 0-6 0"/>
+                <circle cx="12" cy="12" r="3" />
+                <path d="M12 1v6m0 6v6" />
+                <path d="m21 12-6 0m-6 0-6 0" />
               </svg>
               <span>网络设置</span>
             </button>
             <button class="action-button" @click="showSystemInfo">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <circle cx="12" cy="12" r="10"/>
-                <path d="M12 6v6l4 2"/>
+                <circle cx="12" cy="12" r="10" />
+                <path d="M12 6v6l4 2" />
               </svg>
               <span>详细信息</span>
             </button>
@@ -311,6 +340,7 @@ const systemLoading = ref(false)
 const networkLoading = ref(false)
 const weatherLoading = ref(false)
 const scriptsLoading = ref(false)
+const weatherError = ref<string | null>(null)
 
 // 定时器
 let timeInterval: NodeJS.Timeout | null = null
@@ -342,7 +372,7 @@ const formatUptime = (seconds: number): string => {
   const days = Math.floor(seconds / 86400)
   const hours = Math.floor((seconds % 86400) / 3600)
   const minutes = Math.floor((seconds % 3600) / 60)
-  
+
   if (days > 0) return `${days}天 ${hours}小时`
   if (hours > 0) return `${hours}小时 ${minutes}分钟`
   return `${minutes}分钟`
@@ -350,13 +380,17 @@ const formatUptime = (seconds: number): string => {
 
 const getOSDisplayName = (): string => {
   if (!systemInfo.value) return 'Unknown'
-  
+
   const { platform, osType } = systemInfo.value
   switch (platform) {
-    case 'darwin': return `macOS ${osType}`
-    case 'win32': return `Windows ${osType}`
-    case 'linux': return `Linux ${osType}`
-    default: return osType
+    case 'darwin':
+      return `macOS ${osType}`
+    case 'win32':
+      return `Windows ${osType}`
+    case 'linux':
+      return `Linux ${osType}`
+    default:
+      return osType
   }
 }
 
@@ -370,18 +404,18 @@ const getMemoryUsagePercent = (): number => {
 const updateTime = () => {
   const now = new Date()
   currentTime.value = {
-    time: now.toLocaleTimeString('zh-CN', { 
-      hour12: false, 
-      hour: '2-digit', 
-      minute: '2-digit', 
-      second: '2-digit' 
+    time: now.toLocaleTimeString('zh-CN', {
+      hour12: false,
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
     }),
-    date: now.toLocaleDateString('zh-CN', { 
-      year: 'numeric', 
-      month: 'long', 
+    date: now.toLocaleDateString('zh-CN', {
+      year: 'numeric',
+      month: 'long',
       day: 'numeric',
-      weekday: 'long'
-    })
+      weekday: 'long',
+    }),
   }
 }
 
@@ -422,21 +456,27 @@ const loadNetworkInfo = async () => {
   }
 }
 
-// 加载天气数据（预留接口）
+// 加载天气数据
 const loadWeatherData = async () => {
   weatherLoading.value = true
+  weatherError.value = null
   try {
-    // TODO: 在这里调用天气API
-    // 示例数据
-    await new Promise(resolve => setTimeout(resolve, 1000)) // 模拟API延迟
-    weatherData.value = {
-      temperature: 22,
-      description: '晴天',
-      humidity: 65,
-      windSpeed: 12,
-      location: '北京'
+    const result = await window.electronAPI.getWeather('北京')
+    if (result.success) {
+      const data = result.data
+      weatherData.value = {
+        temperature: parseInt(data.temperature) || 0,
+        description: data.weather || '未知',
+        humidity: parseInt(data.humidity) || 0,
+        windSpeed: data.windPower || '未知',
+        location: data.cityName || '北京',
+      }
+    } else {
+      weatherError.value = result.error || '获取天气信息失败'
+      console.error('获取天气失败:', result.error)
     }
   } catch (error) {
+    weatherError.value = '网络连接失败，请检查网络设置'
     console.error('获取天气信息失败:', error)
   } finally {
     weatherLoading.value = false
@@ -450,7 +490,7 @@ const loadScriptsStats = async () => {
     const configs = await window.electronAPI.getScriptConfigs()
     totalScripts.value = configs.length
     enabledScriptsCount.value = configs.filter((script: any) => script.enabled).length
-    
+
     const runningScripts = await window.electronAPI.getRunningScripts()
     runningScriptsCount.value = runningScripts.length
   } catch (error) {
@@ -493,18 +533,14 @@ const showSystemInfo = () => {
 
 // 刷新所有数据
 const refreshAll = async () => {
-  await Promise.all([
-    loadSystemInfo(),
-    loadNetworkInfo(),
-    loadScriptsStats()
-  ])
+  await Promise.all([loadSystemInfo(), loadNetworkInfo(), loadWeatherData(), loadScriptsStats()])
 }
 
 // 生命周期
 onMounted(() => {
   updateTime()
   timeInterval = setInterval(updateTime, 1000)
-  
+
   // 加载所有数据
   refreshAll()
 })
@@ -681,6 +717,53 @@ onUnmounted(() => {
   animation: pulse 2s infinite;
 }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.refresh-btn {
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+}
+
+.refresh-btn:hover:not(:disabled) {
+  background: var(--color-surface);
+  color: var(--color-primary);
+}
+
+.refresh-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.refresh-btn svg {
+  width: 16px;
+  height: 16px;
+  transition: transform 0.3s ease;
+}
+
+.refresh-btn svg.spinning {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .card-content {
   padding: 1rem;
 }
@@ -689,6 +772,33 @@ onUnmounted(() => {
   text-align: center;
   color: var(--color-text-muted);
   padding: 1rem 0;
+}
+
+.loading-spinner {
+  width: 24px;
+  height: 24px;
+  border: 2px solid var(--color-border);
+  border-top: 2px solid var(--color-primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 0.5rem;
+}
+
+.error-content {
+  text-align: center;
+  color: var(--color-text-muted);
+  padding: 1rem 0;
+}
+
+.error-icon {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+}
+
+.error-message {
+  color: var(--color-error);
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
 }
 
 /* 天气卡片 */
@@ -713,6 +823,12 @@ onUnmounted(() => {
 .weather-desc {
   color: var(--color-text-secondary);
   font-size: 0.95rem;
+}
+
+.weather-location {
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
+  margin-top: 0.25rem;
 }
 
 .weather-details {
@@ -971,21 +1087,21 @@ onUnmounted(() => {
   .dashboard {
     padding: 1rem;
   }
-  
+
   .cards-grid {
     grid-template-columns: 1fr;
     gap: 1rem;
   }
-  
+
   .welcome-section {
     flex-direction: column;
     gap: 1rem;
     text-align: center;
   }
-  
+
   .current-time {
     flex-direction: column;
     gap: 0.25rem;
   }
 }
-</style> 
+</style>

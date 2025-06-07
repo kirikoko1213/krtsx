@@ -27,9 +27,10 @@
     "vite": "^5.0.10"
   },
   "dependencies": {
-    "vue": "^3.4.5",
+    "@types/node-cron": "^3.0.11",
+    "axios": "^1.9.0",
     "node-cron": "^3.0.3",
-    "@types/node-cron": "^3.0.11"
+    "vue": "^3.4.5"
   },
   "build": {
     "appId": "com.electron.script-manager",
@@ -50,4 +51,4 @@
       "target": "AppImage"
     }
   }
-} 
+}

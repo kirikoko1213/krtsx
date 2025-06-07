@@ -26,46 +26,51 @@
           <div
             v-for="script in filteredScripts"
             :key="script.id"
-            :class="['script-card', { active: selectedScript?.id === script.id }]"
+            :class="['script-item', { active: selectedScript?.id === script.id }]"
             @click="selectScript(script)"
           >
-            <div class="script-info">
-              <h4>{{ script.name }}</h4>
-              <p class="script-path">
-                {{ script.type === 'file' ? script.path : script.command }}
-              </p>
-              <div class="script-badges">
-                <span class="badge" :class="script.type">{{ script.type === 'file' ? '文件' : '命令' }}</span>
-                <span v-if="script.cronExpression" class="badge cron">定时</span>
-                <span class="badge" :class="script.enabled ? 'enabled' : 'disabled'">
-                  {{ script.enabled ? '启用' : '禁用' }}
-                </span>
+            <!-- 第一行：脚本名称和状态 -->
+            <div class="script-header">
+              <div class="script-title">
+                <h4>{{ script.name }}</h4>
+                <div class="script-status">
+                  <span v-if="runningScripts.has(script.id)" class="status-indicator running">运行中</span>
+                  <span v-else-if="script.enabled" class="status-indicator enabled">已启用</span>
+                  <span v-else class="status-indicator disabled">已禁用</span>
+                  <span v-if="script.cronExpression" class="status-indicator cron">定时</span>
+                </div>
               </div>
             </div>
+            
+            <!-- 第二行：操作按钮 -->
             <div class="script-actions">
               <button
                 v-if="!runningScripts.has(script.id)"
-                class="btn btn-sm btn-success"
+                class="btn btn-xs btn-success"
                 @click.stop="executeScript(script)"
+                title="执行脚本"
               >
                 执行
               </button>
               <button
                 v-else
-                class="btn btn-sm btn-warning"
+                class="btn btn-xs btn-warning"
                 @click.stop="stopScript(script)"
+                title="停止执行"
               >
                 停止
               </button>
               <button
-                class="btn btn-sm btn-secondary"
+                class="btn btn-xs btn-secondary"
                 @click.stop="editScript(script)"
+                title="编辑脚本"
               >
                 编辑
               </button>
               <button
-                class="btn btn-sm btn-danger"
+                class="btn btn-xs btn-danger"
                 @click.stop="deleteScript(script.id)"
+                title="删除脚本"
               >
                 删除
               </button>
@@ -453,94 +458,109 @@ onUnmounted(() => {
   overflow-y: auto;
 }
 
-.script-card {
-  padding: 1.25rem;
+.script-item {
+  padding: 0.75rem 1rem;
   border-bottom: 1px solid var(--color-border-light);
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.2s ease;
   background: var(--color-surface-light);
-  margin: 0.25rem;
-  border-radius: 8px;
+  margin: 0.125rem;
+  border-radius: 6px;
   border: 1px solid transparent;
+  min-height: 60px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
 }
 
-.script-card:hover {
+.script-item:hover {
   background: var(--color-surface);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 16px var(--color-shadow-light);
   border-color: var(--color-border);
+  box-shadow: 0 2px 8px var(--color-shadow-light);
 }
 
-.script-card.active {
+.script-item.active {
   background: var(--color-primary-light);
   border-color: var(--color-primary);
-  box-shadow: 0 4px 16px var(--color-shadow);
-  transform: translateY(-1px);
+  box-shadow: 0 2px 12px var(--color-shadow);
 }
 
-.script-info h4 {
-  font-size: 1rem;
-  color: var(--color-text-primary);
-  margin: 0 0 0.5rem 0;
-  font-weight: 600;
-  letter-spacing: -0.02em;
-}
-
-.script-path {
-  font-size: 0.85rem;
-  color: var(--color-text-secondary);
-  margin: 0 0 0.75rem 0;
-  word-break: break-all;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  background: var(--color-surface);
-  padding: 0.25rem 0.5rem;
-  border-radius: 4px;
-  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-}
-
-.script-badges {
+.script-header {
   display: flex;
-  gap: 0.5rem;
+  justify-content: space-between;
+  align-items: flex-start;
   margin-bottom: 0.5rem;
 }
 
-.badge {
-  padding: 0.2rem 0.5rem;
-  border-radius: 12px;
-  font-size: 0.7rem;
-  font-weight: 500;
+.script-title {
+  flex: 1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
-.badge.file { 
-  background: var(--color-primary-light); 
-  color: var(--color-primary-dark); 
-  border: 1px solid var(--color-primary);
+.script-title h4 {
+  font-size: 0.9rem;
+  color: var(--color-text-primary);
+  margin: 0;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 200px;
 }
-.badge.command { 
-  background: var(--color-secondary); 
-  color: white;
-  opacity: 0.9;
+
+.script-status {
+  display: flex;
+  gap: 0.25rem;
+  flex-shrink: 0;
 }
-.badge.cron { 
-  background: var(--color-warning); 
+
+.status-indicator {
+  padding: 0.15rem 0.4rem;
+  border-radius: 8px;
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.status-indicator.running {
+  background: var(--color-running);
   color: white;
   animation: pulse 2s infinite;
 }
-.badge.enabled { 
-  background: var(--color-success); 
+
+.status-indicator.enabled {
+  background: var(--color-success);
   color: white;
 }
-.badge.disabled { 
-  background: var(--color-error); 
+
+.status-indicator.disabled {
+  background: var(--color-error);
   color: white;
   opacity: 0.8;
 }
 
+.status-indicator.cron {
+  background: var(--color-warning);
+  color: white;
+  animation: pulse 2s infinite;
+}
+
 .script-actions {
   display: flex;
-  gap: 0.5rem;
+  gap: 0.375rem;
+  justify-content: flex-end;
+}
+
+.btn-xs {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  border-radius: 4px;
+  font-weight: 500;
+  min-width: auto;
 }
 
 .output-panel {
@@ -686,14 +706,9 @@ onUnmounted(() => {
   border-radius: 0 0 8px 8px;
 }
 
-.btn-xs {
-  padding: 0.25rem 0.5rem;
-  font-size: 0.7rem;
-}
-
 /* 组件特定的按钮样式覆盖 */
 .script-actions .btn {
-  font-size: 0.8rem;
+  font-size: 0.75rem;
 }
 </style>
 

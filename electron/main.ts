@@ -356,6 +356,71 @@ function setupIpcHandlers() {
     }
   })
 
+  // 获取天气信息
+  ipcMain.handle('get-weather', async (event, city: string) => {
+    try {
+      // 从设置中获取API Key
+      let settings = {}
+      if (fs.existsSync(settingsPath)) {
+        const data = fs.readFileSync(settingsPath, 'utf-8')
+        settings = JSON.parse(data)
+      }
+      
+      const apiKey = (settings as any).weatherApiKey
+      if (!apiKey) {
+        return { success: false, error: '请先在设置中配置天气API Key' }
+      }
+      
+      const baseURL = 'http://apis.juhe.cn/simpleWeather/query'
+      const params = new URLSearchParams({
+        city: city || '北京',
+        key: apiKey
+      })
+      
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 10000)
+      
+      try {
+        const response = await fetch(`${baseURL}?${params}`, {
+          method: 'GET',
+          signal: controller.signal
+        })
+        clearTimeout(timeoutId)
+        
+        if (!response.ok) {
+          return { success: false, error: `HTTP Error: ${response.status}` }
+        }
+        
+        const data = await response.json() as any
+        
+        if (data.error_code !== 0) {
+          return { success: false, error: data.reason || '获取天气信息失败' }
+        }
+        
+        const result = data.result
+        const weatherInfo = {
+          cityName: result.city || city,
+          weather: result.realtime?.info || '未知',
+          temperature: result.realtime?.temperature || '0',
+          humidity: result.realtime?.humidity || '0',
+          windPower: result.realtime?.power || '未知',
+          windDirect: result.realtime?.direct || '未知',
+          aqi: result.realtime?.aqi || '未知'
+        }
+        
+        return { success: true, data: weatherInfo }
+      } catch (fetchError) {
+        clearTimeout(timeoutId)
+        if (fetchError instanceof Error && fetchError.name === 'AbortError') {
+          return { success: false, error: '请求超时' }
+        }
+        throw fetchError
+      }
+    } catch (error) {
+      return { success: false, error: (error as Error).message }
+    }
+  })
+
   // Base64 编码
   ipcMain.handle('base64-encode', async (event, text: string) => {
     try {
