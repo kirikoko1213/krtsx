@@ -25,6 +25,10 @@ body {
   --color-surface: #f8f9fa;
   --color-surface-light: #ffffff;
   
+  /* RGB 颜色值（用于透明度） */
+  --color-surface-light-rgb: 255, 255, 255;
+  --color-surface-rgb: 248, 249, 250;
+  
   /* 文字颜色 */
   --color-text-primary: #333333;
   --color-text-secondary: #666666;
@@ -36,9 +40,17 @@ body {
   
   /* 状态颜色 */
   --color-success: #4caf50;
+  --color-success-light: rgba(76, 175, 80, 0.1);
+  --color-success-dark: #2e7d32;
   --color-warning: #ff9800;
+  --color-warning-light: rgba(255, 152, 0, 0.1);
+  --color-warning-dark: #f57c00;
   --color-error: #f44336;
+  --color-error-light: rgba(244, 67, 54, 0.1);
+  --color-error-dark: #d32f2f;
   --color-info: #2196f3;
+  --color-info-light: rgba(33, 150, 243, 0.1);
+  --color-info-dark: #1976d2;
   
   /* 按钮颜色 */
   --color-button-primary: #2196f3;
@@ -324,4 +336,16 @@ body {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+/* 背景覆盖层样式 */
+.background-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: -1;
+  pointer-events: none;
+  transition: all 0.3s ease;
 } 

@@ -20,10 +20,8 @@
     <main class="app-content">
       <Dashboard v-show="currentTab === 'dashboard'" @navigate="currentTab = $event" />
       <ScriptManager v-show="currentTab === 'scripts'" />
-      <div v-show="currentTab !== 'dashboard' && currentTab !== 'scripts'" class="coming-soon">
-        <h2>功能开发中...</h2>
-        <p>{{ tabs.find(t => t.id === currentTab)?.label }} 功能即将推出</p>
-      </div>
+      <CodeConverter v-show="currentTab === 'converter'" />
+      <Settings v-show="currentTab === 'settings'" />
     </main>
   </div>
 </template>
@@ -32,6 +30,8 @@
 import { ref, onMounted } from 'vue'
 import Dashboard from './components/Dashboard.vue'
 import ScriptManager from './components/ScriptManager.vue'
+import CodeConverter from './components/CodeConverter.vue'
+import Settings from './components/Settings.vue'
 import ThemeSwitcher from './components/ThemeSwitcher.vue'
 import { useTheme } from './composables/useTheme'
 
@@ -40,8 +40,8 @@ const currentTab = ref('dashboard')
 const tabs = [
   { id: 'dashboard', label: '首页' },
   { id: 'scripts', label: '脚本管理' },
-  { id: 'feature2', label: '功能二' },
-  { id: 'feature3', label: '功能三' }
+  { id: 'converter', label: '转码工具' },
+  { id: 'settings', label: '设置' }
 ]
 
 // 初始化主题系统
@@ -156,7 +156,7 @@ onMounted(() => {
 
 .app-content {
   flex: 1;
-  overflow: hidden;
+  overflow: scroll;
   padding: 1.5rem 2rem;
 }
 

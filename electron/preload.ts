@@ -44,6 +44,24 @@ const electronAPI = {
   getPublicIP: () => ipcRenderer.invoke('get-public-ip'),
   getDiskUsage: () => ipcRenderer.invoke('get-disk-usage'),
   
+  // 转码工具
+  base64Encode: (text: string) => ipcRenderer.invoke('base64-encode', text),
+  base64Decode: (base64: string) => ipcRenderer.invoke('base64-decode', base64),
+  md5Hash: (text: string, salt?: string) => ipcRenderer.invoke('md5-hash', text, salt),
+  md5Guess: (hash: string) => ipcRenderer.invoke('md5-guess', hash),
+  urlEncode: (text: string) => ipcRenderer.invoke('url-encode', text),
+  urlDecode: (encodedText: string) => ipcRenderer.invoke('url-decode', encodedText),
+  htmlEncode: (text: string) => ipcRenderer.invoke('html-encode', text),
+  htmlDecode: (encodedText: string) => ipcRenderer.invoke('html-decode', encodedText),
+  
+  // 设置管理
+  selectBackgroundImage: () => ipcRenderer.invoke('select-background-image'),
+  saveBackgroundImage: (sourcePath: string) => ipcRenderer.invoke('save-background-image', sourcePath),
+  getBackgroundImageData: (fileName: string) => ipcRenderer.invoke('get-background-image-data', fileName),
+  saveAppSettings: (settings: any) => ipcRenderer.invoke('save-app-settings', settings),
+  getAppSettings: () => ipcRenderer.invoke('get-app-settings'),
+  deleteBackgroundImage: (fileName: string) => ipcRenderer.invoke('delete-background-image', fileName),
+  
   // 事件监听
   onScriptOutput: (callback: (output: ScriptOutput) => void) => {
     ipcRenderer.on('script-output', (event, output) => callback(output))

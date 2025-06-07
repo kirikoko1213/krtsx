@@ -6,6 +6,7 @@ import * as cron from 'node-cron'
 import * as os from 'os'
 import { exec } from 'child_process'
 import { promisify } from 'util'
+import * as crypto from 'crypto'
 
 const execAsync = promisify(exec)
 
@@ -14,6 +15,15 @@ const isDev = process.argv.includes('--dev')
 
 // 存储脚本配置的文件路径
 const configPath = path.join(app.getPath('userData'), 'scripts-config.json')
+
+// 存储转码历史记录的文件路径
+const md5HistoryPath = path.join(app.getPath('userData'), 'md5-history.json')
+
+// 存储应用设置的文件路径
+const settingsPath = path.join(app.getPath('userData'), 'app-settings.json')
+
+// 存储背景图片的目录
+const backgroundImagesDir = path.join(app.getPath('userData'), 'backgrounds')
 
 // 存储定时任务的映射
 const cronJobs = new Map<string, cron.ScheduledTask>()
@@ -345,6 +355,222 @@ function setupIpcHandlers() {
       return { success: false, error: (error as Error).message }
     }
   })
+
+  // Base64 编码
+  ipcMain.handle('base64-encode', async (event, text: string) => {
+    try {
+      const encoded = Buffer.from(text, 'utf8').toString('base64')
+      return { success: true, data: encoded }
+    } catch (error) {
+      return { success: false, error: (error as Error).message }
+    }
+  })
+
+  // Base64 解码
+  ipcMain.handle('base64-decode', async (event, base64: string) => {
+    try {
+      const decoded = Buffer.from(base64, 'base64').toString('utf8')
+      return { success: true, data: decoded }
+    } catch (error) {
+      return { success: false, error: '无效的Base64字符串' }
+    }
+  })
+
+  // MD5 加密
+  ipcMain.handle('md5-hash', async (event, text: string, salt?: string) => {
+    try {
+      const textToHash = salt ? text + salt : text
+      const hash = crypto.createHash('md5').update(textToHash).digest('hex')
+      
+      // 保存到历史记录
+      saveMd5History(text, hash, salt)
+      
+      return { success: true, data: hash }
+    } catch (error) {
+      return { success: false, error: (error as Error).message }
+    }
+  })
+
+  // MD5 猜测（从历史记录中查找）
+  ipcMain.handle('md5-guess', async (event, hash: string) => {
+    try {
+      const history = loadMd5History()
+      const found = history.find(item => item.hash === hash.toLowerCase())
+      
+      if (found) {
+        return { success: true, data: { original: found.original, salt: found.salt } }
+      } else {
+        return { success: false, error: '未在历史记录中找到该MD5值' }
+      }
+    } catch (error) {
+      return { success: false, error: (error as Error).message }
+    }
+  })
+
+  // URL 编码
+  ipcMain.handle('url-encode', async (event, text: string) => {
+    try {
+      const encoded = encodeURIComponent(text)
+      return { success: true, data: encoded }
+    } catch (error) {
+      return { success: false, error: (error as Error).message }
+    }
+  })
+
+  // URL 解码
+  ipcMain.handle('url-decode', async (event, encodedText: string) => {
+    try {
+      const decoded = decodeURIComponent(encodedText)
+      return { success: true, data: decoded }
+    } catch (error) {
+      return { success: false, error: '无效的URL编码字符串' }
+    }
+  })
+
+  // HTML 实体编码
+  ipcMain.handle('html-encode', async (event, text: string) => {
+    try {
+      const encoded = text
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#x27;')
+      return { success: true, data: encoded }
+    } catch (error) {
+      return { success: false, error: (error as Error).message }
+    }
+  })
+
+  // HTML 实体解码
+  ipcMain.handle('html-decode', async (event, encodedText: string) => {
+    try {
+      const decoded = encodedText
+        .replace(/&amp;/g, '&')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&quot;/g, '"')
+        .replace(/&#x27;/g, "'")
+      return { success: true, data: decoded }
+    } catch (error) {
+      return { success: false, error: (error as Error).message }
+    }
+  })
+
+  // 选择背景图片
+  ipcMain.handle('select-background-image', async () => {
+    const result = await dialog.showOpenDialog(mainWindow, {
+      properties: ['openFile'],
+      filters: [
+        { name: '图片文件', extensions: ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'] },
+        { name: '所有文件', extensions: ['*'] }
+      ]
+    })
+    return result
+  })
+
+  // 保存背景图片
+  ipcMain.handle('save-background-image', async (event, sourcePath: string) => {
+    try {
+      // 确保背景图片目录存在
+      if (!fs.existsSync(backgroundImagesDir)) {
+        fs.mkdirSync(backgroundImagesDir, { recursive: true })
+      }
+
+      const ext = path.extname(sourcePath)
+      const fileName = `background_${Date.now()}${ext}`
+      const targetPath = path.join(backgroundImagesDir, fileName)
+
+      // 复制图片到应用数据目录
+      fs.copyFileSync(sourcePath, targetPath)
+
+      return { success: true, data: fileName }
+    } catch (error) {
+      return { success: false, error: (error as Error).message }
+    }
+  })
+
+  // 获取背景图片数据URL
+  ipcMain.handle('get-background-image-data', async (event, fileName: string) => {
+    try {
+      const imagePath = path.join(backgroundImagesDir, fileName)
+      if (fs.existsSync(imagePath)) {
+        // 读取图片文件
+        const imageBuffer = fs.readFileSync(imagePath)
+        
+        // 获取文件扩展名以确定MIME类型
+        const ext = path.extname(fileName).toLowerCase()
+        let mimeType = 'image/jpeg' // 默认值
+        
+        switch (ext) {
+          case '.png':
+            mimeType = 'image/png'
+            break
+          case '.gif':
+            mimeType = 'image/gif'
+            break
+          case '.bmp':
+            mimeType = 'image/bmp'
+            break
+          case '.webp':
+            mimeType = 'image/webp'
+            break
+          case '.jpg':
+          case '.jpeg':
+          default:
+            mimeType = 'image/jpeg'
+            break
+        }
+        
+        // 转换为base64数据URL
+        const base64Data = imageBuffer.toString('base64')
+        const dataUrl = `data:${mimeType};base64,${base64Data}`
+        
+        return { success: true, data: dataUrl }
+      } else {
+        return { success: false, error: '图片文件不存在' }
+      }
+    } catch (error) {
+      return { success: false, error: (error as Error).message }
+    }
+  })
+
+  // 保存应用设置
+  ipcMain.handle('save-app-settings', async (event, settings: any) => {
+    try {
+      fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2))
+      return { success: true }
+    } catch (error) {
+      return { success: false, error: (error as Error).message }
+    }
+  })
+
+  // 获取应用设置
+  ipcMain.handle('get-app-settings', async () => {
+    try {
+      if (fs.existsSync(settingsPath)) {
+        const data = fs.readFileSync(settingsPath, 'utf-8')
+        return { success: true, data: JSON.parse(data) }
+      } else {
+        return { success: true, data: {} }
+      }
+    } catch (error) {
+      return { success: false, error: (error as Error).message }
+    }
+  })
+
+  // 删除背景图片
+  ipcMain.handle('delete-background-image', async (event, fileName: string) => {
+    try {
+      const imagePath = path.join(backgroundImagesDir, fileName)
+      if (fs.existsSync(imagePath)) {
+        fs.unlinkSync(imagePath)
+      }
+      return { success: true }
+    } catch (error) {
+      return { success: false, error: (error as Error).message }
+    }
+  })
 }
 
 function loadScriptConfigsFromFile(): ScriptConfig[] {
@@ -391,5 +617,57 @@ function updateCronJob(config: ScriptConfig) {
     } catch (error) {
       console.error(`设置定时任务失败: ${config.name}`, error)
     }
+  }
+}
+
+// MD5历史记录相关函数
+interface Md5HistoryItem {
+  original: string
+  hash: string
+  salt?: string
+  timestamp: number
+}
+
+function loadMd5History(): Md5HistoryItem[] {
+  try {
+    if (fs.existsSync(md5HistoryPath)) {
+      const data = fs.readFileSync(md5HistoryPath, 'utf-8')
+      return JSON.parse(data)
+    }
+  } catch (error) {
+    console.error('Error loading MD5 history:', error)
+  }
+  return []
+}
+
+function saveMd5History(original: string, hash: string, salt?: string) {
+  try {
+    const history = loadMd5History()
+    
+    // 检查是否已存在相同的记录
+    const exists = history.some(item => 
+      item.original === original && 
+      item.salt === salt
+    )
+    
+    if (!exists) {
+      const newItem: Md5HistoryItem = {
+        original,
+        hash: hash.toLowerCase(),
+        salt,
+        timestamp: Date.now()
+      }
+      
+      history.push(newItem)
+      
+      // 保留最近1000条记录
+      if (history.length > 1000) {
+        history.splice(0, history.length - 1000)
+      }
+      
+      fs.writeFileSync(md5HistoryPath, JSON.stringify(history, null, 2))
+    }
+  } catch (error) {
+    console.error('Error saving MD5 history:', error)
   }
 } 

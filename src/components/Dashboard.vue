@@ -518,7 +518,7 @@ onUnmounted(() => {
 
 <style scoped>
 .dashboard {
-  padding: 1.5rem;
+  padding: 1rem;
   min-height: 100%;
   background: var(--color-background);
 }
@@ -527,10 +527,10 @@ onUnmounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 2rem;
-  padding: 2rem;
+  margin-bottom: 1.5rem;
+  padding: 1.5rem;
   background: var(--color-surface-light);
-  border-radius: 16px;
+  border-radius: 12px;
   box-shadow: 0 4px 20px var(--color-shadow-light);
 }
 
@@ -545,7 +545,7 @@ onUnmounted(() => {
   align-items: center;
   gap: 1rem;
   margin: 0;
-  font-size: 2rem;
+  font-size: 1.75rem;
   font-weight: 700;
 }
 
@@ -569,7 +569,7 @@ onUnmounted(() => {
 }
 
 .time {
-  font-size: 1.5rem;
+  font-size: 1.25rem;
   font-weight: 600;
   color: var(--color-primary);
 }
@@ -611,8 +611,23 @@ onUnmounted(() => {
 
 .cards-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+/* 大屏幕优化 - 显示更多卡片 */
+@media (min-width: 1400px) {
+  .cards-grid {
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 0.875rem;
+  }
+}
+
+@media (min-width: 1600px) {
+  .cards-grid {
+    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    gap: 0.75rem;
+  }
 }
 
 .info-card {
@@ -632,7 +647,7 @@ onUnmounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1.25rem;
+  padding: 1rem;
   background: var(--color-surface);
   border-bottom: 1px solid var(--color-border);
 }
@@ -667,7 +682,7 @@ onUnmounted(() => {
 }
 
 .card-content {
-  padding: 1.25rem;
+  padding: 1rem;
 }
 
 .placeholder-content {
@@ -690,27 +705,28 @@ onUnmounted(() => {
 }
 
 .temperature {
-  font-size: 2.5rem;
+  font-size: 2rem;
   font-weight: bold;
   color: var(--color-primary);
 }
 
 .weather-desc {
   color: var(--color-text-secondary);
-  font-size: 1.1rem;
+  font-size: 0.95rem;
 }
 
 .weather-details {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.25rem;
 }
 
 .detail-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
+  padding: 0.15rem 0;
 }
 
 .detail-item .label {
@@ -726,13 +742,13 @@ onUnmounted(() => {
 .network-info {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 0.75rem;
 }
 
 .ip-item {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.35rem;
 }
 
 .ip-label {
@@ -745,11 +761,11 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.5rem 0.75rem;
+  padding: 0.4rem 0.65rem;
   background: var(--color-surface);
-  border-radius: 6px;
+  border-radius: 4px;
   font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-  font-size: 0.875rem;
+  font-size: 0.8rem;
   color: var(--color-text-primary);
 }
 
@@ -788,14 +804,14 @@ onUnmounted(() => {
 .system-info {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 0.5rem;
 }
 
 .system-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.5rem 0;
+  padding: 0.35rem 0;
   border-bottom: 1px solid var(--color-border-light);
 }
 
@@ -805,26 +821,26 @@ onUnmounted(() => {
 
 .system-item .label {
   color: var(--color-text-muted);
-  font-size: 0.875rem;
+  font-size: 0.8rem;
 }
 
 .system-item .value {
   color: var(--color-text-primary);
   font-weight: 500;
-  font-size: 0.875rem;
+  font-size: 0.8rem;
 }
 
 /* 性能监控卡片 */
 .performance-info {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 0.75rem;
 }
 
 .metric-item {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.35rem;
 }
 
 .metric-header {
@@ -834,7 +850,7 @@ onUnmounted(() => {
 }
 
 .metric-label {
-  font-size: 0.875rem;
+  font-size: 0.8rem;
   color: var(--color-text-muted);
 }
 
@@ -844,38 +860,38 @@ onUnmounted(() => {
 }
 
 .progress-bar {
-  height: 8px;
+  height: 6px;
   background: var(--color-border-light);
-  border-radius: 4px;
+  border-radius: 3px;
   overflow: hidden;
 }
 
 .progress-fill {
   height: 100%;
   background: linear-gradient(90deg, var(--color-primary), var(--color-secondary));
-  border-radius: 4px;
+  border-radius: 3px;
   transition: width 0.3s ease;
 }
 
 .metric-details {
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   color: var(--color-text-muted);
 }
 
 .cpu-info {
-  font-size: 0.875rem;
+  font-size: 0.8rem;
   color: var(--color-text-secondary);
-  padding: 0.5rem 0.75rem;
+  padding: 0.4rem 0.65rem;
   background: var(--color-surface);
-  border-radius: 6px;
+  border-radius: 4px;
 }
 
 /* 脚本状态卡片 */
 .scripts-info {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 1rem;
-  margin-bottom: 1rem;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
 }
 
 .script-metric {
@@ -883,7 +899,7 @@ onUnmounted(() => {
 }
 
 .metric-number {
-  font-size: 2rem;
+  font-size: 1.75rem;
   font-weight: bold;
   color: var(--color-text-primary);
 }
@@ -897,9 +913,9 @@ onUnmounted(() => {
 }
 
 .metric-label {
-  font-size: 0.875rem;
+  font-size: 0.8rem;
   color: var(--color-text-muted);
-  margin-top: 0.25rem;
+  margin-top: 0.2rem;
 }
 
 .scripts-actions {
@@ -910,18 +926,18 @@ onUnmounted(() => {
 .action-buttons {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 0.75rem;
+  gap: 0.5rem;
 }
 
 .action-button {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.5rem;
-  padding: 1rem;
+  gap: 0.35rem;
+  padding: 0.75rem;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: 6px;
   cursor: pointer;
   transition: all 0.2s ease;
   color: var(--color-text-primary);
@@ -935,16 +951,22 @@ onUnmounted(() => {
 }
 
 .action-button svg {
-  width: 24px;
-  height: 24px;
+  width: 20px;
+  height: 20px;
 }
 
 .action-button span {
-  font-size: 0.875rem;
+  font-size: 0.8rem;
   font-weight: 500;
 }
 
 /* 响应式设计 */
+@media (max-width: 1200px) {
+  .cards-grid {
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  }
+}
+
 @media (max-width: 768px) {
   .dashboard {
     padding: 1rem;
