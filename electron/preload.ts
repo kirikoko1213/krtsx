@@ -47,6 +47,9 @@ const electronAPI = {
   // 天气信息
   getWeather: (city?: string) => ipcRenderer.invoke('get-weather', city),
   
+  // 杀死端口进程
+  killPortProcess: (port: number) => ipcRenderer.invoke('kill-port-process', port),
+  
   // 转码工具
   base64Encode: (text: string) => ipcRenderer.invoke('base64-encode', text),
   base64Decode: (base64: string) => ipcRenderer.invoke('base64-decode', base64),

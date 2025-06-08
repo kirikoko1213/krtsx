@@ -260,6 +260,7 @@
             </svg>
             快速操作
           </h3>
+          <span class="status-indicator" :class="{ active: portKilling }"></span>
         </div>
         <div class="card-content">
           <div class="action-buttons">
@@ -285,13 +286,57 @@
               </svg>
               <span>网络设置</span>
             </button>
-            <button class="action-button" @click="showSystemInfo">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <circle cx="12" cy="12" r="10" />
-                <path d="M12 6v6l4 2" />
+          </div>
+          
+          <!-- 端口管理区域 -->
+          <div class="port-section">
+            <div class="port-header">
+              <svg class="port-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="M3 7v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2z" />
+                <path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                <circle cx="12" cy="12" r="1" />
               </svg>
-              <span>详细信息</span>
-            </button>
+              <span>杀死端口进程</span>
+            </div>
+            <div class="port-input-group">
+              <input
+                v-model="portInput"
+                type="number"
+                placeholder="端口号 (如: 3000)"
+                class="port-input"
+                :disabled="portKilling"
+                @keyup.enter="handleKillPort"
+                min="1"
+                max="65535"
+              />
+              <button
+                class="kill-port-btn"
+                @click="handleKillPort"
+                :disabled="portKilling || !portInput"
+              >
+                <svg v-if="!portKilling" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <path d="M18 6L6 18" />
+                  <path d="M6 6l12 12" />
+                </svg>
+                <div v-else class="loading-spinner"></div>
+                {{ portKilling ? '执行中...' : '杀死' }}
+              </button>
+            </div>
+            
+            <div v-if="portResult" class="port-result" :class="{ success: portResult.success, error: !portResult.success, fading: portResultFading }">
+              <div class="result-icon">
+                <svg v-if="portResult.success" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <path d="M9 12l2 2 4-4" />
+                  <circle cx="12" cy="12" r="10" />
+                </svg>
+                <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="15" y1="9" x2="9" y2="15" />
+                  <line x1="9" y1="9" x2="15" y2="15" />
+                </svg>
+              </div>
+              <p class="result-message">{{ portResult.message || portResult.error }}</p>
+            </div>
           </div>
         </div>
       </div>
@@ -341,6 +386,12 @@ const networkLoading = ref(false)
 const weatherLoading = ref(false)
 const scriptsLoading = ref(false)
 const weatherError = ref<string | null>(null)
+
+// 端口管理相关
+const portInput = ref<string>('')
+const portKilling = ref(false)
+const portResult = ref<{ success: boolean; message?: string; error?: string } | null>(null)
+const portResultFading = ref(false)
 
 // 定时器
 let timeInterval: NodeJS.Timeout | null = null
@@ -526,9 +577,62 @@ const openNetworkSettings = () => {
   console.log('打开网络设置')
 }
 
-const showSystemInfo = () => {
-  // TODO: 实现显示详细系统信息功能
-  console.log('显示系统信息')
+
+
+// 清除端口结果（带淡出效果）
+const clearPortResult = () => {
+  if (portResult.value) {
+    portResultFading.value = true
+    setTimeout(() => {
+      portResult.value = null
+      portResultFading.value = false
+    }, 300) // 等待淡出动画完成
+  }
+}
+
+// 杀死端口进程
+const handleKillPort = async () => {
+  if (!portInput.value || portKilling.value) return
+  
+  const port = parseInt(portInput.value)
+  if (isNaN(port) || port < 1 || port > 65535) {
+    portResult.value = {
+      success: false,
+      error: '请输入有效的端口号 (1-65535)'
+    }
+    portResultFading.value = false
+    // 3秒后清除错误消息
+    setTimeout(clearPortResult, 3000)
+    return
+  }
+  
+  portKilling.value = true
+  portResult.value = null
+  portResultFading.value = false
+  
+  try {
+    const result = await window.electronAPI.killPortProcess(port)
+    portResult.value = result
+    portResultFading.value = false
+    
+    if (result.success) {
+      // 成功后清空输入
+      portInput.value = ''
+    }
+    
+    // 无论成功还是失败，3秒后都清除结果消息
+    setTimeout(clearPortResult, 3000)
+  } catch (error) {
+    portResult.value = {
+      success: false,
+      error: `执行失败: ${(error as Error).message}`
+    }
+    portResultFading.value = false
+    // 3秒后清除错误消息
+    setTimeout(clearPortResult, 3000)
+  } finally {
+    portKilling.value = false
+  }
 }
 
 // 刷新所有数据
@@ -1041,8 +1145,9 @@ onUnmounted(() => {
 /* 快速操作卡片 */
 .action-buttons {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 0.5rem;
+  margin-bottom: 1rem;
 }
 
 .action-button {
@@ -1076,6 +1181,33 @@ onUnmounted(() => {
   font-weight: 500;
 }
 
+/* 端口管理区域 */
+.port-section {
+  border-top: 1px solid var(--color-border);
+  padding-top: 1rem;
+}
+
+.port-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.port-icon {
+  width: 18px;
+  height: 18px;
+}
+
+.port-input-group {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
 /* 响应式设计 */
 @media (max-width: 1200px) {
   .cards-grid {
@@ -1102,6 +1234,118 @@ onUnmounted(() => {
   .current-time {
     flex-direction: column;
     gap: 0.25rem;
+  }
+}
+
+.port-input {
+  flex: 1;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  font-size: 0.8rem;
+  transition: all 0.2s ease;
+}
+
+.port-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px var(--color-primary-light);
+}
+
+.port-input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.kill-port-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.5rem 0.75rem;
+  background: #dc3545;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.kill-port-btn:hover:not(:disabled) {
+  background: #c82333;
+  transform: translateY(-1px);
+}
+
+.kill-port-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.kill-port-btn svg {
+  width: 14px;
+  height: 14px;
+}
+
+.port-result {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  animation: fadeIn 0.3s ease;
+  font-size: 0.8rem;
+}
+
+.port-result.fading {
+  animation: fadeOut 0.3s ease;
+}
+
+.port-result.success {
+  background: #d4edda;
+  color: #155724;
+  border: 1px solid #c3e6cb;
+}
+
+.port-result.error {
+  background: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+}
+
+.result-icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.result-message {
+  margin: 0;
+  font-weight: 500;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-10px);
   }
 }
 </style>

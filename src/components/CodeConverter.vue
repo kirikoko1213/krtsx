@@ -315,7 +315,7 @@ async function encodeBase64() {
   try {
     const result = await window.electronAPI.base64Encode(base64Input.value)
     if (result.success) {
-      base64Output.value = result.data
+      base64Output.value = result.data || ""
     }
   } catch (error) {
     console.error('Base64编码失败:', error)
@@ -330,7 +330,7 @@ async function decodeBase64() {
   try {
     const result = await window.electronAPI.base64Decode(base64Output.value)
     if (result.success) {
-      base64Input.value = result.data
+      base64Input.value = result.data || ""
     }
   } catch (error) {
     console.error('Base64解码失败:', error)
@@ -355,7 +355,7 @@ async function generateMd5() {
   try {
     const result = await window.electronAPI.md5Hash(md5Input.value, md5Salt.value || undefined)
     if (result.success) {
-      md5Output.value = result.data
+      md5Output.value = result.data || ""
     }
   } catch (error) {
     console.error('MD5生成失败:', error)
@@ -371,9 +371,9 @@ async function guessMd5() {
   try {
     const result = await window.electronAPI.md5Guess(md5GuessInput.value)
     if (result.success) {
-      md5GuessResult.value = result.data
+      md5GuessResult.value = result.data || { original: "", salt: "" }
     } else {
-      md5GuessError.value = result.error
+      md5GuessError.value = result.error || ""
     }
   } catch (error) {
     md5GuessError.value = '猜测失败'
@@ -466,7 +466,7 @@ async function encodeUrl() {
   try {
     const result = await window.electronAPI.urlEncode(urlInput.value)
     if (result.success) {
-      urlOutput.value = result.data
+      urlOutput.value = result.data || ""
     }
   } catch (error) {
     console.error('URL编码失败:', error)
@@ -479,7 +479,7 @@ async function decodeUrl() {
   try {
     const result = await window.electronAPI.urlDecode(urlOutput.value)
     if (result.success) {
-      urlInput.value = result.data
+      urlInput.value = result.data || ""
     }
   } catch (error) {
     console.error('URL解码失败:', error)
@@ -507,7 +507,7 @@ async function encodeHtml() {
   try {
     const result = await window.electronAPI.htmlEncode(htmlInput.value)
     if (result.success) {
-      htmlOutput.value = result.data
+      htmlOutput.value = result.data || ""
     }
   } catch (error) {
     console.error('HTML编码失败:', error)
@@ -520,7 +520,7 @@ async function decodeHtml() {
   try {
     const result = await window.electronAPI.htmlDecode(htmlOutput.value)
     if (result.success) {
-      htmlInput.value = result.data
+      htmlInput.value = result.data || ""
     }
   } catch (error) {
     console.error('HTML解码失败:', error)

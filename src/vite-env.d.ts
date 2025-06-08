@@ -82,5 +82,65 @@ interface Window {
       data: string
     }) => void) => () => void
     onExecuteScheduledScript: (callback: (config: any) => void) => () => void
-  }
+    base64Encode: (input: string) => Promise<{
+      success: boolean
+      data?: string
+      error?: string
+    }>
+    base64Decode: (input: string) => Promise<{
+      success: boolean
+      data?: string
+      error?: string
+    }>
+    htmlToBase64: (input: string) => Promise<{
+      success: boolean
+      data?: string
+      error?: string
+    }>
+    base64ToHtml: (input: string) => Promise<{  
+      success: boolean
+      data?: string
+      error?: string
+    }>  
+    htmlToBase64: (input: string) => Promise<{
+      success: boolean
+      data?: string
+      error?: string
+    }>
+    base64ToHtml: (input: string) => Promise<{
+      success: boolean
+      data?: string
+      error?: string
+    }>
+    htmlToBase64: (input: string) => Promise<{
+      success: boolean
+      data?: string
+      error?: string
+    }>
+    base64ToHtml: (input: string) => Promise<{
+      success: boolean
+      data?: string
+      error?: string
+    }>
+    md5Hash: (input: string, salt?: string) => Promise<{
+      success: boolean
+      data?: string
+      error?: string
+    }>
+    md5Guess: (input: string) => Promise<{
+      success: boolean
+      data?: string
+      error?: string
+    }>
+    jsonFormat: (input: string) => Promise<{
+      success: boolean
+      data?: string
+      error?: string
+    }>
+    jsonValidate: (input: string) => Promise<{
+      success: boolean
+      data?: string
+      error?: string
+    }>
+  } & any
 } 

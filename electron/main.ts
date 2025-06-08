@@ -522,6 +522,75 @@ function setupIpcHandlers() {
     }
   })
 
+  // 杀死端口进程
+  ipcMain.handle('kill-port-process', async (event, port: number) => {
+    try {
+      const platform = os.platform()
+      let command: string
+      
+      if (platform === 'win32') {
+        // Windows
+        command = `netstat -ano | findstr :${port}`
+      } else {
+        // macOS/Linux
+        command = `lsof -ti:${port}`
+      }
+      
+      const { stdout } = await execAsync(command)
+      
+      if (!stdout.trim()) {
+        return {
+          success: false,
+          error: `端口 ${port} 上没有找到运行的进程`
+        }
+      }
+      
+      let pids: string[] = []
+      
+      if (platform === 'win32') {
+        // 解析Windows netstat输出
+        const lines = stdout.trim().split('\n')
+        for (const line of lines) {
+          const parts = line.trim().split(/\s+/)
+          if (parts.length >= 5) {
+            const pid = parts[parts.length - 1]
+            if (pid && pid !== '0' && !pids.includes(pid)) {
+              pids.push(pid)
+            }
+          }
+        }
+      } else {
+        // macOS/Linux直接返回PID
+        pids = stdout.trim().split('\n').filter(pid => pid.trim() !== '')
+      }
+      
+      if (pids.length === 0) {
+        return {
+          success: false,
+          error: `端口 ${port} 上没有找到有效的进程ID`
+        }
+      }
+      
+      // 杀死进程
+      const killCommand = platform === 'win32' 
+        ? `taskkill /F /PID ${pids.join(' /PID ')}`
+        : `kill -9 ${pids.join(' ')}`
+      
+      await execAsync(killCommand)
+      
+      return {
+        success: true,
+        message: `成功杀死端口 ${port} 上的进程 (PID: ${pids.join(', ')})`
+      }
+    } catch (error) {
+      console.error('Kill port process error:', error)
+      return {
+        success: false,
+        error: `杀死端口进程失败: ${(error as Error).message}`
+      }
+    }
+  })
+
   // 选择背景图片
   ipcMain.handle('select-background-image', async () => {
     const result = await dialog.showOpenDialog(mainWindow, {

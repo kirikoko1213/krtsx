@@ -4,3 +4,32 @@ dist
 .DS_Store
 .idea
 yarn-error.log
+
+# 打包输出目录
+release/
+
+# Electron builder cache
+.electron-builder-cache/
+
+# 日志文件
+*.log
+
+# 临时文件
+*.tmp
+*.temp
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
