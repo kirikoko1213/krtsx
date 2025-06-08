@@ -82,6 +82,30 @@ interface Window {
       data: string
     }) => void) => () => void
     onExecuteScheduledScript: (callback: (config: any) => void) => () => void
+    // 番茄钟相关
+    savePomodoroSettings: (settings: any) => Promise<{
+      success: boolean
+      error?: string
+    }>
+    getPomodoroSettings: () => Promise<{
+      success: boolean
+      data?: any
+      error?: string
+    }>
+    savePomodoroStats: (stats: any) => Promise<{
+      success: boolean
+      error?: string
+    }>
+    getPomodoroStats: () => Promise<{
+      success: boolean
+      data?: any
+      error?: string
+    }>
+    getPomodoroHistory: () => Promise<{
+      success: boolean
+      data?: any[]
+      error?: string
+    }>
     base64Encode: (input: string) => Promise<{
       success: boolean
       data?: string

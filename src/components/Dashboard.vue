@@ -249,6 +249,43 @@
         </div>
       </div>
 
+      <!-- 番茄钟状态卡片 -->
+<!--      <div class="info-card pomodoro-card">-->
+<!--        <div class="card-header">-->
+<!--          <h3>-->
+<!--            <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">-->
+<!--              <circle cx="12" cy="12" r="10" />-->
+<!--              <polyline points="12,6 12,12 16,14" />-->
+<!--            </svg>-->
+<!--            番茄钟-->
+<!--          </h3>-->
+<!--          <span class="status-indicator" :class="{ active: pomodoroActive }"></span>-->
+<!--        </div>-->
+<!--        <div class="card-content">-->
+<!--          <div class="pomodoro-info">-->
+<!--            <div class="pomodoro-status">-->
+<!--              <div class="status-text">{{ pomodoroStatusText }}</div>-->
+<!--              <div class="time-display">{{ pomodoroTimeDisplay }}</div>-->
+<!--            </div>-->
+<!--            <div class="pomodoro-stats">-->
+<!--              <div class="stat-item">-->
+<!--                <span class="stat-number">{{ pomodoroStats.completedSessions }}</span>-->
+<!--                <span class="stat-label">今日完成</span>-->
+<!--              </div>-->
+<!--              <div class="stat-item">-->
+<!--                <span class="stat-number">{{ formatPomodoroTime(pomodoroStats.totalWorkTime) }}</span>-->
+<!--                <span class="stat-label">工作时间</span>-->
+<!--              </div>-->
+<!--            </div>-->
+<!--          </div>-->
+<!--          <div class="pomodoro-actions">-->
+<!--            <button class="btn btn-sm btn-primary" @click="$emit('navigate', 'pomodoro')">-->
+<!--              打开番茄钟-->
+<!--            </button>-->
+<!--          </div>-->
+<!--        </div>-->
+<!--      </div>-->
+
       <!-- 快速操作卡片 -->
       <div class="info-card actions-card">
         <div class="card-header">
@@ -380,6 +417,15 @@ const totalScripts = ref(0)
 const runningScriptsCount = ref(0)
 const enabledScriptsCount = ref(0)
 
+// 番茄钟相关数据
+const pomodoroActive = ref(false)
+const pomodoroStats = ref({
+  completedSessions: 0,
+  totalWorkTime: 0,
+  totalBreakTime: 0,
+  totalSessions: 0
+})
+
 // 加载状态
 const systemLoading = ref(false)
 const networkLoading = ref(false)
@@ -409,6 +455,25 @@ const greeting = computed(() => {
   if (hour < 18) return '下午好'
   return '晚上好'
 })
+
+// 番茄钟计算属性
+const pomodoroStatusText = computed(() => {
+  return pomodoroActive.value ? '专注中...' : '待机中'
+})
+
+const pomodoroTimeDisplay = computed(() => {
+  return pomodoroActive.value ? '25:00' : '--:--'
+})
+
+// 格式化番茄钟时间
+const formatPomodoroTime = (seconds: number): string => {
+  const hours = Math.floor(seconds / 3600)
+  const minutes = Math.floor((seconds % 3600) / 60)
+  if (hours > 0) {
+    return `${hours}h ${minutes}m`
+  }
+  return `${minutes}m`
+}
 
 // 格式化函数
 const formatBytes = (bytes: number): string => {
@@ -551,6 +616,18 @@ const loadScriptsStats = async () => {
   }
 }
 
+// 加载番茄钟统计
+const loadPomodoroStats = async () => {
+  try {
+    const result = await window.electronAPI.getPomodoroStats()
+    if (result.success) {
+      pomodoroStats.value = { ...pomodoroStats.value, ...result.data }
+    }
+  } catch (error) {
+    console.error('获取番茄钟统计失败:', error)
+  }
+}
+
 // 复制到剪贴板
 const copyToClipboard = async (text: string) => {
   try {
@@ -637,7 +714,7 @@ const handleKillPort = async () => {
 
 // 刷新所有数据
 const refreshAll = async () => {
-  await Promise.all([loadSystemInfo(), loadNetworkInfo(), loadWeatherData(), loadScriptsStats()])
+  await Promise.all([loadSystemInfo(), loadNetworkInfo(), loadWeatherData(), loadScriptsStats(), loadPomodoroStats()])
 }
 
 // 生命周期
@@ -1139,6 +1216,66 @@ onUnmounted(() => {
 }
 
 .scripts-actions {
+  text-align: center;
+}
+
+/* 番茄钟卡片 */
+.pomodoro-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.pomodoro-status {
+  text-align: center;
+  padding: 1rem;
+  background: var(--color-surface);
+  border-radius: 8px;
+  border: 2px solid var(--color-border);
+}
+
+.status-text {
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+  margin-bottom: 0.5rem;
+}
+
+.time-display {
+  font-size: 1.5rem;
+  font-weight: 700;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  color: var(--color-primary);
+}
+
+.pomodoro-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.pomodoro-stats .stat-item {
+  text-align: center;
+  padding: 0.75rem;
+  background: var(--color-surface);
+  border-radius: 6px;
+  border: 1px solid var(--color-border);
+}
+
+.pomodoro-stats .stat-number {
+  display: block;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--color-primary);
+  margin-bottom: 0.25rem;
+}
+
+.pomodoro-stats .stat-label {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+.pomodoro-actions {
   text-align: center;
 }
 

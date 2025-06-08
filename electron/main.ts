@@ -22,6 +22,12 @@ const md5HistoryPath = path.join(app.getPath('userData'), 'md5-history.json')
 // 存储应用设置的文件路径
 const settingsPath = path.join(app.getPath('userData'), 'app-settings.json')
 
+// 存储番茄钟设置的文件路径
+const pomodoroSettingsPath = path.join(app.getPath('userData'), 'pomodoro-settings.json')
+
+// 存储番茄钟统计的文件路径
+const pomodoroStatsPath = path.join(app.getPath('userData'), 'pomodoro-stats.json')
+
 // 存储背景图片的目录
 const backgroundImagesDir = path.join(app.getPath('userData'), 'backgrounds')
 
@@ -701,6 +707,116 @@ function setupIpcHandlers() {
         fs.unlinkSync(imagePath)
       }
       return { success: true }
+    } catch (error) {
+      return { success: false, error: (error as Error).message }
+    }
+  })
+
+  // 番茄钟设置管理
+  ipcMain.handle('save-pomodoro-settings', async (event, settings: any) => {
+    try {
+      fs.writeFileSync(pomodoroSettingsPath, JSON.stringify(settings, null, 2))
+      return { success: true }
+    } catch (error) {
+      return { success: false, error: (error as Error).message }
+    }
+  })
+
+  ipcMain.handle('get-pomodoro-settings', async () => {
+    try {
+      if (fs.existsSync(pomodoroSettingsPath)) {
+        const data = fs.readFileSync(pomodoroSettingsPath, 'utf-8')
+        return { success: true, data: JSON.parse(data) }
+      } else {
+        // 返回默认设置
+        const defaultSettings = {
+          workDuration: 25,
+          shortBreakDuration: 5,
+          longBreakDuration: 15,
+          longBreakInterval: 4,
+          autoStartBreaks: false,
+          autoStartWork: false,
+          soundEnabled: true,
+          notificationEnabled: true
+        }
+        return { success: true, data: defaultSettings }
+      }
+    } catch (error) {
+      return { success: false, error: (error as Error).message }
+    }
+  })
+
+  // 番茄钟统计管理
+  ipcMain.handle('save-pomodoro-stats', async (event, stats: any) => {
+    try {
+      // 添加日期标识
+      const today = new Date().toISOString().split('T')[0]
+      const statsWithDate = { ...stats, date: today }
+
+      let allStats: any[] = []
+      if (fs.existsSync(pomodoroStatsPath)) {
+        const data = fs.readFileSync(pomodoroStatsPath, 'utf-8')
+        allStats = JSON.parse(data)
+      }
+
+      // 查找今天的记录
+      const todayIndex = allStats.findIndex((s: any) => s.date === today)
+      if (todayIndex >= 0) {
+        allStats[todayIndex] = statsWithDate
+      } else {
+        allStats.push(statsWithDate)
+      }
+
+      // 只保留最近30天的数据
+      const thirtyDaysAgo = new Date()
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+      allStats = allStats.filter((s: any) => new Date(s.date) >= thirtyDaysAgo)
+
+      fs.writeFileSync(pomodoroStatsPath, JSON.stringify(allStats, null, 2))
+      return { success: true }
+    } catch (error) {
+      return { success: false, error: (error as Error).message }
+    }
+  })
+
+  ipcMain.handle('get-pomodoro-stats', async () => {
+    try {
+      const today = new Date().toISOString().split('T')[0]
+
+      if (fs.existsSync(pomodoroStatsPath)) {
+        const data = fs.readFileSync(pomodoroStatsPath, 'utf-8')
+        const allStats = JSON.parse(data)
+
+        // 查找今天的统计
+        const todayStats = allStats.find((s: any) => s.date === today)
+        if (todayStats) {
+          return { success: true, data: todayStats }
+        }
+      }
+
+      // 返回默认统计
+      const defaultStats = {
+        completedSessions: 0,
+        totalWorkTime: 0,
+        totalBreakTime: 0,
+        totalSessions: 0,
+        date: today
+      }
+      return { success: true, data: defaultStats }
+    } catch (error) {
+      return { success: false, error: (error as Error).message }
+    }
+  })
+
+  // 获取番茄钟历史统计
+  ipcMain.handle('get-pomodoro-history', async () => {
+    try {
+      if (fs.existsSync(pomodoroStatsPath)) {
+        const data = fs.readFileSync(pomodoroStatsPath, 'utf-8')
+        return { success: true, data: JSON.parse(data) }
+      } else {
+        return { success: true, data: [] }
+      }
     } catch (error) {
       return { success: false, error: (error as Error).message }
     }

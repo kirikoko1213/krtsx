@@ -20,6 +20,7 @@
     <main class="app-content">
       <Dashboard v-show="currentTab === 'dashboard'" @navigate="currentTab = $event" />
       <ScriptManager v-show="currentTab === 'scripts'" />
+      <PomodoroTimer v-show="currentTab === 'pomodoro'" />
       <CodeConverter v-show="currentTab === 'converter'" />
       <Settings v-show="currentTab === 'settings'" />
     </main>
@@ -30,6 +31,7 @@
 import { ref, onMounted } from 'vue'
 import Dashboard from './components/Dashboard.vue'
 import ScriptManager from './components/ScriptManager.vue'
+import PomodoroTimer from './components/PomodoroTimer.vue'
 import CodeConverter from './components/CodeConverter.vue'
 import Settings from './components/Settings.vue'
 import ThemeSwitcher from './components/ThemeSwitcher.vue'
@@ -40,6 +42,7 @@ const currentTab = ref('dashboard')
 const tabs = [
   { id: 'dashboard', label: '首页' },
   { id: 'scripts', label: '脚本管理' },
+  { id: 'pomodoro', label: '番茄钟' },
   { id: 'converter', label: '转码工具' },
   { id: 'settings', label: '设置' }
 ]

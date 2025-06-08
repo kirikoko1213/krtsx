@@ -67,6 +67,13 @@ const electronAPI = {
   saveAppSettings: (settings: any) => ipcRenderer.invoke('save-app-settings', settings),
   getAppSettings: () => ipcRenderer.invoke('get-app-settings'),
   deleteBackgroundImage: (fileName: string) => ipcRenderer.invoke('delete-background-image', fileName),
+
+  // 番茄钟管理
+  savePomodoroSettings: (settings: any) => ipcRenderer.invoke('save-pomodoro-settings', settings),
+  getPomodoroSettings: () => ipcRenderer.invoke('get-pomodoro-settings'),
+  savePomodoroStats: (stats: any) => ipcRenderer.invoke('save-pomodoro-stats', stats),
+  getPomodoroStats: () => ipcRenderer.invoke('get-pomodoro-stats'),
+  getPomodoroHistory: () => ipcRenderer.invoke('get-pomodoro-history'),
   
   // 事件监听
   onScriptOutput: (callback: (output: ScriptOutput) => void) => {
