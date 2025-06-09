@@ -153,6 +153,13 @@ function setupIpcHandlers() {
         preferredShell: 'auto',
         loadShellConfig: true
       }
+
+      // 确保基本路径存在
+      if (!env.PATH) {
+        env.PATH = '/usr/local/bin:/usr/bin:/bin'
+      } else if (!env.PATH.includes('/usr/local/bin')) {
+        env.PATH = `/usr/local/bin:${env.PATH}`
+      }
       
       // 在 macOS/Linux 上，根据用户设置选择Shell和配置加载方式
       if (process.platform !== 'win32') {
@@ -185,9 +192,11 @@ function setupIpcHandlers() {
           // 构建命令，根据设置决定是否加载配置文件
           let shellCommand
           if (executionSettings.loadShellConfig && configFile) {
-            shellCommand = `source ${configFile} 2>/dev/null || true; ${command} ${args.join(' ')}`
+            // 加载配置文件并导出环境变量
+            shellCommand = `source ${configFile} 2>/dev/null || true; export PATH; ${command} ${args.join(' ')}`
           } else {
-            shellCommand = `${command} ${args.join(' ')}`
+            // 至少确保基本路径可用
+            shellCommand = `export PATH="/usr/local/bin:/usr/bin:/bin:$PATH"; ${command} ${args.join(' ')}`
           }
           
           const child = spawn(shellPath, ['-c', shellCommand], {
@@ -860,105 +869,7 @@ function setupIpcHandlers() {
     }
   })
 
-  // 测试Shell配置
-  ipcMain.handle('test-shell-config', async () => {
-    try {
-      let settings = {}
-      if (fs.existsSync(settingsPath)) {
-        const data = fs.readFileSync(settingsPath, 'utf-8')
-        settings = JSON.parse(data)
-      }
-      
-      const executionSettings = (settings as any).execution || {
-        preferredShell: 'auto',
-        loadShellConfig: true
-      }
 
-      let testCommand: string
-      let testArgs: string[]
-
-      if (process.platform === 'win32') {
-        testCommand = 'cmd'
-        testArgs = ['/c', 'echo "Shell测试成功！" && echo "当前用户: %USERNAME%" && echo "系统版本: %OS%"']
-      } else {
-        let shellPath = '/bin/zsh'
-        let configFile = '~/.zshrc'
-        
-        // 根据设置选择Shell
-        switch (executionSettings.preferredShell) {
-          case 'bash':
-            shellPath = '/bin/bash'
-            configFile = '~/.bashrc'
-            break
-          case 'sh':
-            shellPath = '/bin/sh'
-            configFile = ''
-            break
-          case 'custom':
-            shellPath = executionSettings.customShellPath || '/bin/zsh'
-            configFile = ''
-            break
-          case 'auto':
-          case 'zsh':
-          default:
-            shellPath = '/bin/zsh'
-            configFile = '~/.zshrc'
-            break
-        }
-
-        // 构建测试命令
-        let shellCommand = ''
-        if (executionSettings.loadShellConfig && configFile) {
-          shellCommand = `source ${configFile} 2>/dev/null || true; `
-        }
-        shellCommand += 'echo "Shell测试成功！" && echo "当前Shell: $0" && echo "当前用户: $USER" && echo "PATH变量数量: $(echo $PATH | tr ":" "\\n" | wc -l)"'
-        
-        testCommand = shellPath
-        testArgs = ['-c', shellCommand]
-      }
-
-      // 执行测试命令
-      const result = await new Promise<{ success: boolean; output?: string; error?: string }>((resolve) => {
-        const child = spawn(testCommand, testArgs, {
-          stdio: ['pipe', 'pipe', 'pipe'],
-          env: { ...process.env }
-        })
-
-        let output = ''
-        let error = ''
-
-        child.stdout?.on('data', (data) => {
-          output += data.toString()
-        })
-
-        child.stderr?.on('data', (data) => {
-          error += data.toString()
-        })
-
-        child.on('close', (code) => {
-          if (code === 0) {
-            resolve({ success: true, output })
-          } else {
-            resolve({ success: false, error: error || '命令执行失败' })
-          }
-        })
-
-        child.on('error', (err) => {
-          resolve({ success: false, error: err.message })
-        })
-
-        // 5秒超时
-        setTimeout(() => {
-          child.kill('SIGTERM')
-          resolve({ success: false, error: '测试超时' })
-        }, 5000)
-      })
-
-      return result
-    } catch (error) {
-      return { success: false, error: (error as Error).message }
-    }
-  })
 }
 
 function loadScriptConfigsFromFile(): ScriptConfig[] {

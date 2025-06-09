@@ -280,12 +280,6 @@
               <p>开启后将自动加载 ~/.zshrc, ~/.bashrc 等配置文件中的环境变量</p>
             </div>
           </div>
-
-          <!-- 测试按钮 -->
-          <div class="setting-item">
-            <label class="setting-label">Shell 测试</label>
-            <button class="btn btn-primary" @click="testShellConfig">测试 Shell 配置</button>
-          </div>
         </div>
       </div>
 
@@ -692,23 +686,6 @@ async function loadSystemShellInfo() {
     }
   } catch (error) {
     console.error('加载系统Shell信息失败:', error)
-  }
-}
-
-// 测试 Shell 配置
-async function testShellConfig() {
-  try {
-    // 先保存当前设置
-    await saveSettings()
-
-    const result = await window.electronAPI.testShellConfig()
-    if (result.success) {
-      alert(`Shell测试成功！\n${result.data.output}`)
-    } else {
-      alert(`Shell测试失败: ${result.error}`)
-    }
-  } catch (error) {
-    alert(`测试失败: ${error}`)
   }
 }
 

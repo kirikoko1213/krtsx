@@ -70,7 +70,6 @@ const electronAPI = {
   
   // Shell 配置管理
   getSystemShellInfo: () => ipcRenderer.invoke('get-system-shell-info'),
-  testShellConfig: () => ipcRenderer.invoke('test-shell-config'),
   
   // 事件监听
   onScriptOutput: (callback: (output: ScriptOutput) => void) => {
