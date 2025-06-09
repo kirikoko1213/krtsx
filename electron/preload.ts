@@ -68,6 +68,10 @@ const electronAPI = {
   getAppSettings: () => ipcRenderer.invoke('get-app-settings'),
   deleteBackgroundImage: (fileName: string) => ipcRenderer.invoke('delete-background-image', fileName),
   
+  // Shell 配置管理
+  getSystemShellInfo: () => ipcRenderer.invoke('get-system-shell-info'),
+  testShellConfig: () => ipcRenderer.invoke('test-shell-config'),
+  
   // 事件监听
   onScriptOutput: (callback: (output: ScriptOutput) => void) => {
     ipcRenderer.on('script-output', (event, output) => callback(output))

@@ -141,9 +141,109 @@ function setupIpcHandlers() {
         return
       }
 
+      // 获取用户的环境变量和Shell设置
+      let env = { ...process.env }
+      let settings = {}
+      if (fs.existsSync(settingsPath)) {
+        const data = fs.readFileSync(settingsPath, 'utf-8')
+        settings = JSON.parse(data)
+      }
+      
+      const executionSettings = (settings as any).execution || {
+        preferredShell: 'auto',
+        loadShellConfig: true
+      }
+      
+      // 在 macOS/Linux 上，根据用户设置选择Shell和配置加载方式
+      if (process.platform !== 'win32') {
+        try {
+          let shellPath = '/bin/zsh'  // 默认值
+          let configFile = '~/.zshrc'
+          
+          // 根据用户设置选择Shell
+          switch (executionSettings.preferredShell) {
+            case 'bash':
+              shellPath = '/bin/bash'
+              configFile = '~/.bashrc'
+              break
+            case 'sh':
+              shellPath = '/bin/sh'
+              configFile = ''  // sh 通常不需要配置文件
+              break
+            case 'custom':
+              shellPath = executionSettings.customShellPath || '/bin/zsh'
+              configFile = ''  // 自定义Shell不自动加载配置
+              break
+            case 'auto':
+            case 'zsh':
+            default:
+              shellPath = '/bin/zsh'
+              configFile = '~/.zshrc'
+              break
+          }
+          
+          // 构建命令，根据设置决定是否加载配置文件
+          let shellCommand
+          if (executionSettings.loadShellConfig && configFile) {
+            shellCommand = `source ${configFile} 2>/dev/null || true; ${command} ${args.join(' ')}`
+          } else {
+            shellCommand = `${command} ${args.join(' ')}`
+          }
+          
+          const child = spawn(shellPath, ['-c', shellCommand], {
+            stdio: ['pipe', 'pipe', 'pipe'],
+            env: env
+          })
+          
+          // 将子进程存储起来，以便后续可以停止
+          runningProcesses.set(scriptConfig.id, child)
+
+          let output = ''
+          let error = ''
+
+          child.stdout?.on('data', (data) => {
+            const text = data.toString()
+            output += text
+            event.sender.send('script-output', { scriptId: scriptConfig.id, type: 'stdout', data: text })
+          })
+
+          child.stderr?.on('data', (data) => {
+            const text = data.toString()
+            error += text
+            event.sender.send('script-output', { scriptId: scriptConfig.id, type: 'stderr', data: text })
+          })
+
+          child.on('close', (code) => {
+            // 从运行进程映射中移除
+            runningProcesses.delete(scriptConfig.id)
+            resolve({
+              success: code === 0,
+              output,
+              error,
+              exitCode: code
+            })
+          })
+
+          child.on('error', (err) => {
+            // 从运行进程映射中移除
+            runningProcesses.delete(scriptConfig.id)
+            resolve({
+              success: false,
+              error: err.message
+            })
+          })
+          
+          return // 早期返回，避免执行下面的 Windows 代码
+        } catch (shellError) {
+          console.warn('Failed to use zsh shell, falling back to default spawn:', shellError)
+        }
+      }
+      
+      // Windows 或者 zsh 失败时的备用方案
       const child = spawn(command, args, {
         shell: true,
-        stdio: ['pipe', 'pipe', 'pipe']
+        stdio: ['pipe', 'pipe', 'pipe'],
+        env: env
       })
 
       // 将子进程存储起来，以便后续可以停止
@@ -701,6 +801,160 @@ function setupIpcHandlers() {
         fs.unlinkSync(imagePath)
       }
       return { success: true }
+    } catch (error) {
+      return { success: false, error: (error as Error).message }
+    }
+  })
+
+  // 获取系统Shell信息
+  ipcMain.handle('get-system-shell-info', async () => {
+    try {
+      const shellInfo = {
+        default: '/bin/sh',
+        current: process.env.SHELL || '/bin/sh',
+        available: [] as string[]
+      }
+
+      // 检测可用的Shell
+      const commonShells = ['/bin/sh', '/bin/bash', '/bin/zsh', '/usr/bin/fish', '/usr/local/bin/fish']
+      
+      for (const shell of commonShells) {
+        try {
+          if (fs.existsSync(shell)) {
+            const baseName = path.basename(shell)
+            if (!shellInfo.available.includes(baseName)) {
+              shellInfo.available.push(baseName)
+            }
+          }
+        } catch (error) {
+          // 忽略单个Shell检测错误
+        }
+      }
+
+      // 在Linux/macOS上尝试从/etc/shells读取
+      if (process.platform !== 'win32') {
+        try {
+          if (fs.existsSync('/etc/shells')) {
+            const shellsFile = fs.readFileSync('/etc/shells', 'utf-8')
+            const shells = shellsFile.split('\n')
+              .filter(line => line.trim() && !line.startsWith('#'))
+              .map(line => line.trim())
+            
+            for (const shell of shells) {
+              if (fs.existsSync(shell)) {
+                const baseName = path.basename(shell)
+                if (!shellInfo.available.includes(baseName)) {
+                  shellInfo.available.push(baseName)
+                }
+              }
+            }
+          }
+        } catch (error) {
+          // 忽略读取/etc/shells的错误
+        }
+      }
+
+      return { success: true, data: shellInfo }
+    } catch (error) {
+      return { success: false, error: (error as Error).message }
+    }
+  })
+
+  // 测试Shell配置
+  ipcMain.handle('test-shell-config', async () => {
+    try {
+      let settings = {}
+      if (fs.existsSync(settingsPath)) {
+        const data = fs.readFileSync(settingsPath, 'utf-8')
+        settings = JSON.parse(data)
+      }
+      
+      const executionSettings = (settings as any).execution || {
+        preferredShell: 'auto',
+        loadShellConfig: true
+      }
+
+      let testCommand: string
+      let testArgs: string[]
+
+      if (process.platform === 'win32') {
+        testCommand = 'cmd'
+        testArgs = ['/c', 'echo "Shell测试成功！" && echo "当前用户: %USERNAME%" && echo "系统版本: %OS%"']
+      } else {
+        let shellPath = '/bin/zsh'
+        let configFile = '~/.zshrc'
+        
+        // 根据设置选择Shell
+        switch (executionSettings.preferredShell) {
+          case 'bash':
+            shellPath = '/bin/bash'
+            configFile = '~/.bashrc'
+            break
+          case 'sh':
+            shellPath = '/bin/sh'
+            configFile = ''
+            break
+          case 'custom':
+            shellPath = executionSettings.customShellPath || '/bin/zsh'
+            configFile = ''
+            break
+          case 'auto':
+          case 'zsh':
+          default:
+            shellPath = '/bin/zsh'
+            configFile = '~/.zshrc'
+            break
+        }
+
+        // 构建测试命令
+        let shellCommand = ''
+        if (executionSettings.loadShellConfig && configFile) {
+          shellCommand = `source ${configFile} 2>/dev/null || true; `
+        }
+        shellCommand += 'echo "Shell测试成功！" && echo "当前Shell: $0" && echo "当前用户: $USER" && echo "PATH变量数量: $(echo $PATH | tr ":" "\\n" | wc -l)"'
+        
+        testCommand = shellPath
+        testArgs = ['-c', shellCommand]
+      }
+
+      // 执行测试命令
+      const result = await new Promise<{ success: boolean; output?: string; error?: string }>((resolve) => {
+        const child = spawn(testCommand, testArgs, {
+          stdio: ['pipe', 'pipe', 'pipe'],
+          env: { ...process.env }
+        })
+
+        let output = ''
+        let error = ''
+
+        child.stdout?.on('data', (data) => {
+          output += data.toString()
+        })
+
+        child.stderr?.on('data', (data) => {
+          error += data.toString()
+        })
+
+        child.on('close', (code) => {
+          if (code === 0) {
+            resolve({ success: true, output })
+          } else {
+            resolve({ success: false, error: error || '命令执行失败' })
+          }
+        })
+
+        child.on('error', (err) => {
+          resolve({ success: false, error: err.message })
+        })
+
+        // 5秒超时
+        setTimeout(() => {
+          child.kill('SIGTERM')
+          resolve({ success: false, error: '测试超时' })
+        }, 5000)
+      })
+
+      return result
     } catch (error) {
       return { success: false, error: (error as Error).message }
     }
