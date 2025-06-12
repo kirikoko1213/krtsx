@@ -631,6 +631,140 @@ function setupIpcHandlers() {
     }
   })
 
+  // 获取环境变量
+  ipcMain.handle('get-environment-variables', async () => {
+    try {
+      const envVars: Array<{name: string, value: string, isSystem: boolean}> = []
+      
+      // 获取所有环境变量
+      for (const [name, value] of Object.entries(process.env)) {
+        if (value !== undefined) {
+          // 判断是否为系统变量（通过一些常见的系统变量名判断）
+          const isSystem = [
+            'PATH', 'HOME', 'USER', 'USERNAME', 'USERPROFILE', 'APPDATA', 'LOCALAPPDATA',
+            'PROGRAMFILES', 'PROGRAMFILES(X86)', 'SYSTEMROOT', 'WINDIR', 'TEMP', 'TMP',
+            'SHELL', 'PWD', 'OLDPWD', 'PS1', 'TERM', 'LANG', 'LC_ALL',
+            'NODE_ENV', 'npm_config_cache', 'npm_config_prefix'
+          ].includes(name) || name.startsWith('npm_') || name.startsWith('NODE_')
+          
+          envVars.push({
+            name,
+            value,
+            isSystem
+          })
+        }
+      }
+      
+      return { success: true, data: envVars }
+    } catch (error) {
+      return { success: false, error: (error as Error).message }
+    }
+  })
+
+  // 设置环境变量
+  ipcMain.handle('set-environment-variable', async (event, name: string, value: string, isSystem: boolean = false) => {
+    try {
+      if (isSystem) {
+        // Windows 系统级环境变量需要管理员权限
+        if (process.platform === 'win32') {
+          const command = `setx "${name}" "${value}" /M`
+          await execAsync(command)
+        } else {
+          // Unix-like 系统，修改系统配置文件需要 sudo
+          return { success: false, error: '设置系统级环境变量需要管理员权限' }
+        }
+      } else {
+        // 用户级环境变量
+        if (process.platform === 'win32') {
+          const command = `setx "${name}" "${value}"`
+          await execAsync(command)
+        } else {
+          // Unix-like 系统，修改用户配置文件
+          const homeDir = os.homedir()
+          const bashrcPath = path.join(homeDir, '.bashrc')
+          const zshrcPath = path.join(homeDir, '.zshrc')
+          
+          const exportLine = `export ${name}="${value}"`
+          
+          // 尝试写入到 .bashrc 或 .zshrc
+          if (fs.existsSync(zshrcPath)) {
+            // 检查是否已存在该变量
+            const content = fs.readFileSync(zshrcPath, 'utf-8')
+            const regex = new RegExp(`^export\\s+${name}=.*$`, 'm')
+            
+            if (regex.test(content)) {
+              // 替换现有的
+              const newContent = content.replace(regex, exportLine)
+              fs.writeFileSync(zshrcPath, newContent)
+            } else {
+              // 追加新的
+              fs.appendFileSync(zshrcPath, `\n${exportLine}\n`)
+            }
+          } else if (fs.existsSync(bashrcPath)) {
+            const content = fs.readFileSync(bashrcPath, 'utf-8')
+            const regex = new RegExp(`^export\\s+${name}=.*$`, 'm')
+            
+            if (regex.test(content)) {
+              const newContent = content.replace(regex, exportLine)
+              fs.writeFileSync(bashrcPath, newContent)
+            } else {
+              fs.appendFileSync(bashrcPath, `\n${exportLine}\n`)
+            }
+          }
+        }
+      }
+      
+      // 在当前进程中也设置环境变量
+      process.env[name] = value
+      
+      return { success: true }
+    } catch (error) {
+      return { success: false, error: (error as Error).message }
+    }
+  })
+
+  // 删除环境变量
+  ipcMain.handle('delete-environment-variable', async (event, name: string) => {
+    try {
+      if (process.platform === 'win32') {
+        // Windows - 删除用户环境变量
+        const command = `reg delete "HKCU\\Environment" /v "${name}" /f`
+        try {
+          await execAsync(command)
+        } catch (regError) {
+          // 如果注册表删除失败，可能变量不存在，这是正常的
+          console.log('注册表删除失败（可能变量不存在）:', regError)
+        }
+      } else {
+        // Unix-like 系统 - 从配置文件中删除
+        const homeDir = os.homedir()
+        const bashrcPath = path.join(homeDir, '.bashrc')
+        const zshrcPath = path.join(homeDir, '.zshrc')
+        
+        const regex = new RegExp(`^export\\s+${name}=.*$\\n?`, 'm')
+        
+        if (fs.existsSync(zshrcPath)) {
+          const content = fs.readFileSync(zshrcPath, 'utf-8')
+          const newContent = content.replace(regex, '')
+          fs.writeFileSync(zshrcPath, newContent)
+        }
+        
+        if (fs.existsSync(bashrcPath)) {
+          const content = fs.readFileSync(bashrcPath, 'utf-8')
+          const newContent = content.replace(regex, '')
+          fs.writeFileSync(bashrcPath, newContent)
+        }
+      }
+      
+      // 从当前进程中删除
+      delete process.env[name]
+      
+      return { success: true }
+    } catch (error) {
+      return { success: false, error: (error as Error).message }
+    }
+  })
+
   // 杀死端口进程
   ipcMain.handle('kill-port-process', async (event, port: number) => {
     try {
