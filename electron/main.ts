@@ -147,9 +147,118 @@ function setupIpcHandlers() {
         return
       }
 
+      // 获取用户的环境变量和Shell设置
+      let env = { ...process.env }
+      let settings = {}
+      if (fs.existsSync(settingsPath)) {
+        const data = fs.readFileSync(settingsPath, 'utf-8')
+        settings = JSON.parse(data)
+      }
+      
+      const executionSettings = (settings as any).execution || {
+        preferredShell: 'auto',
+        loadShellConfig: true
+      }
+
+      // 确保基本路径存在
+      if (!env.PATH) {
+        env.PATH = '/usr/local/bin:/usr/bin:/bin'
+      } else if (!env.PATH.includes('/usr/local/bin')) {
+        env.PATH = `/usr/local/bin:${env.PATH}`
+      }
+      
+      // 在 macOS/Linux 上，根据用户设置选择Shell和配置加载方式
+      if (process.platform !== 'win32') {
+        try {
+          let shellPath = '/bin/zsh'  // 默认值
+          let configFile = '~/.zshrc'
+          
+          // 根据用户设置选择Shell
+          switch (executionSettings.preferredShell) {
+            case 'bash':
+              shellPath = '/bin/bash'
+              configFile = '~/.bashrc'
+              break
+            case 'sh':
+              shellPath = '/bin/sh'
+              configFile = ''  // sh 通常不需要配置文件
+              break
+            case 'custom':
+              shellPath = executionSettings.customShellPath || '/bin/zsh'
+              configFile = ''  // 自定义Shell不自动加载配置
+              break
+            case 'auto':
+            case 'zsh':
+            default:
+              shellPath = '/bin/zsh'
+              configFile = '~/.zshrc'
+              break
+          }
+          
+          // 构建命令，根据设置决定是否加载配置文件
+          let shellCommand
+          if (executionSettings.loadShellConfig && configFile) {
+            // 加载配置文件并导出环境变量
+            shellCommand = `source ${configFile} 2>/dev/null || true; export PATH; ${command} ${args.join(' ')}`
+          } else {
+            // 至少确保基本路径可用
+            shellCommand = `export PATH="/usr/local/bin:/usr/bin:/bin:$PATH"; ${command} ${args.join(' ')}`
+          }
+          
+          const child = spawn(shellPath, ['-c', shellCommand], {
+            stdio: ['pipe', 'pipe', 'pipe'],
+            env: env
+          })
+          
+          // 将子进程存储起来，以便后续可以停止
+          runningProcesses.set(scriptConfig.id, child)
+
+          let output = ''
+          let error = ''
+
+          child.stdout?.on('data', (data) => {
+            const text = data.toString()
+            output += text
+            event.sender.send('script-output', { scriptId: scriptConfig.id, type: 'stdout', data: text })
+          })
+
+          child.stderr?.on('data', (data) => {
+            const text = data.toString()
+            error += text
+            event.sender.send('script-output', { scriptId: scriptConfig.id, type: 'stderr', data: text })
+          })
+
+          child.on('close', (code) => {
+            // 从运行进程映射中移除
+            runningProcesses.delete(scriptConfig.id)
+            resolve({
+              success: code === 0,
+              output,
+              error,
+              exitCode: code
+            })
+          })
+
+          child.on('error', (err) => {
+            // 从运行进程映射中移除
+            runningProcesses.delete(scriptConfig.id)
+            resolve({
+              success: false,
+              error: err.message
+            })
+          })
+          
+          return // 早期返回，避免执行下面的 Windows 代码
+        } catch (shellError) {
+          console.warn('Failed to use zsh shell, falling back to default spawn:', shellError)
+        }
+      }
+      
+      // Windows 或者 zsh 失败时的备用方案
       const child = spawn(command, args, {
         shell: true,
-        stdio: ['pipe', 'pipe', 'pipe']
+        stdio: ['pipe', 'pipe', 'pipe'],
+        env: env
       })
 
       // 将子进程存储起来，以便后续可以停止
@@ -528,6 +637,140 @@ function setupIpcHandlers() {
     }
   })
 
+  // 获取环境变量
+  ipcMain.handle('get-environment-variables', async () => {
+    try {
+      const envVars: Array<{name: string, value: string, isSystem: boolean}> = []
+      
+      // 获取所有环境变量
+      for (const [name, value] of Object.entries(process.env)) {
+        if (value !== undefined) {
+          // 判断是否为系统变量（通过一些常见的系统变量名判断）
+          const isSystem = [
+            'PATH', 'HOME', 'USER', 'USERNAME', 'USERPROFILE', 'APPDATA', 'LOCALAPPDATA',
+            'PROGRAMFILES', 'PROGRAMFILES(X86)', 'SYSTEMROOT', 'WINDIR', 'TEMP', 'TMP',
+            'SHELL', 'PWD', 'OLDPWD', 'PS1', 'TERM', 'LANG', 'LC_ALL',
+            'NODE_ENV', 'npm_config_cache', 'npm_config_prefix'
+          ].includes(name) || name.startsWith('npm_') || name.startsWith('NODE_')
+          
+          envVars.push({
+            name,
+            value,
+            isSystem
+          })
+        }
+      }
+      
+      return { success: true, data: envVars }
+    } catch (error) {
+      return { success: false, error: (error as Error).message }
+    }
+  })
+
+  // 设置环境变量
+  ipcMain.handle('set-environment-variable', async (event, name: string, value: string, isSystem: boolean = false) => {
+    try {
+      if (isSystem) {
+        // Windows 系统级环境变量需要管理员权限
+        if (process.platform === 'win32') {
+          const command = `setx "${name}" "${value}" /M`
+          await execAsync(command)
+        } else {
+          // Unix-like 系统，修改系统配置文件需要 sudo
+          return { success: false, error: '设置系统级环境变量需要管理员权限' }
+        }
+      } else {
+        // 用户级环境变量
+        if (process.platform === 'win32') {
+          const command = `setx "${name}" "${value}"`
+          await execAsync(command)
+        } else {
+          // Unix-like 系统，修改用户配置文件
+          const homeDir = os.homedir()
+          const bashrcPath = path.join(homeDir, '.bashrc')
+          const zshrcPath = path.join(homeDir, '.zshrc')
+          
+          const exportLine = `export ${name}="${value}"`
+          
+          // 尝试写入到 .bashrc 或 .zshrc
+          if (fs.existsSync(zshrcPath)) {
+            // 检查是否已存在该变量
+            const content = fs.readFileSync(zshrcPath, 'utf-8')
+            const regex = new RegExp(`^export\\s+${name}=.*$`, 'm')
+            
+            if (regex.test(content)) {
+              // 替换现有的
+              const newContent = content.replace(regex, exportLine)
+              fs.writeFileSync(zshrcPath, newContent)
+            } else {
+              // 追加新的
+              fs.appendFileSync(zshrcPath, `\n${exportLine}\n`)
+            }
+          } else if (fs.existsSync(bashrcPath)) {
+            const content = fs.readFileSync(bashrcPath, 'utf-8')
+            const regex = new RegExp(`^export\\s+${name}=.*$`, 'm')
+            
+            if (regex.test(content)) {
+              const newContent = content.replace(regex, exportLine)
+              fs.writeFileSync(bashrcPath, newContent)
+            } else {
+              fs.appendFileSync(bashrcPath, `\n${exportLine}\n`)
+            }
+          }
+        }
+      }
+      
+      // 在当前进程中也设置环境变量
+      process.env[name] = value
+      
+      return { success: true }
+    } catch (error) {
+      return { success: false, error: (error as Error).message }
+    }
+  })
+
+  // 删除环境变量
+  ipcMain.handle('delete-environment-variable', async (event, name: string) => {
+    try {
+      if (process.platform === 'win32') {
+        // Windows - 删除用户环境变量
+        const command = `reg delete "HKCU\\Environment" /v "${name}" /f`
+        try {
+          await execAsync(command)
+        } catch (regError) {
+          // 如果注册表删除失败，可能变量不存在，这是正常的
+          console.log('注册表删除失败（可能变量不存在）:', regError)
+        }
+      } else {
+        // Unix-like 系统 - 从配置文件中删除
+        const homeDir = os.homedir()
+        const bashrcPath = path.join(homeDir, '.bashrc')
+        const zshrcPath = path.join(homeDir, '.zshrc')
+        
+        const regex = new RegExp(`^export\\s+${name}=.*$\\n?`, 'm')
+        
+        if (fs.existsSync(zshrcPath)) {
+          const content = fs.readFileSync(zshrcPath, 'utf-8')
+          const newContent = content.replace(regex, '')
+          fs.writeFileSync(zshrcPath, newContent)
+        }
+        
+        if (fs.existsSync(bashrcPath)) {
+          const content = fs.readFileSync(bashrcPath, 'utf-8')
+          const newContent = content.replace(regex, '')
+          fs.writeFileSync(bashrcPath, newContent)
+        }
+      }
+      
+      // 从当前进程中删除
+      delete process.env[name]
+      
+      return { success: true }
+    } catch (error) {
+      return { success: false, error: (error as Error).message }
+    }
+  })
+
   // 杀死端口进程
   ipcMain.handle('kill-port-process', async (event, port: number) => {
     try {
@@ -711,6 +954,62 @@ function setupIpcHandlers() {
       return { success: false, error: (error as Error).message }
     }
   })
+
+  // 获取系统Shell信息
+  ipcMain.handle('get-system-shell-info', async () => {
+    try {
+      const shellInfo = {
+        default: '/bin/sh',
+        current: process.env.SHELL || '/bin/sh',
+        available: [] as string[]
+      }
+
+      // 检测可用的Shell
+      const commonShells = ['/bin/sh', '/bin/bash', '/bin/zsh', '/usr/bin/fish', '/usr/local/bin/fish']
+      
+      for (const shell of commonShells) {
+        try {
+          if (fs.existsSync(shell)) {
+            const baseName = path.basename(shell)
+            if (!shellInfo.available.includes(baseName)) {
+              shellInfo.available.push(baseName)
+            }
+          }
+        } catch (error) {
+          // 忽略单个Shell检测错误
+        }
+      }
+
+      // 在Linux/macOS上尝试从/etc/shells读取
+      if (process.platform !== 'win32') {
+        try {
+          if (fs.existsSync('/etc/shells')) {
+            const shellsFile = fs.readFileSync('/etc/shells', 'utf-8')
+            const shells = shellsFile.split('\n')
+              .filter(line => line.trim() && !line.startsWith('#'))
+              .map(line => line.trim())
+            
+            for (const shell of shells) {
+              if (fs.existsSync(shell)) {
+                const baseName = path.basename(shell)
+                if (!shellInfo.available.includes(baseName)) {
+                  shellInfo.available.push(baseName)
+                }
+              }
+            }
+          }
+        } catch (error) {
+          // 忽略读取/etc/shells的错误
+        }
+      }
+
+      return { success: true, data: shellInfo }
+    } catch (error) {
+      return { success: false, error: (error as Error).message }
+    }
+  })
+
+
 
   // 番茄钟设置管理
   ipcMain.handle('save-pomodoro-settings', async (event, settings: any) => {

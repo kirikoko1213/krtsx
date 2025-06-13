@@ -315,6 +315,13 @@
               </svg>
               <span>系统监控</span>
             </button>
+            <button class="action-button" @click="$emit('navigate', 'envmanager')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="M12 2v20" />
+                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+              </svg>
+              <span>环境变量</span>
+            </button>
             <button class="action-button" @click="openNetworkSettings">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
                 <circle cx="12" cy="12" r="3" />
@@ -324,7 +331,7 @@
               <span>网络设置</span>
             </button>
           </div>
-          
+
           <!-- 端口管理区域 -->
           <div class="port-section">
             <div class="port-header">
@@ -359,10 +366,23 @@
                 {{ portKilling ? '执行中...' : '杀死' }}
               </button>
             </div>
-            
-            <div v-if="portResult" class="port-result" :class="{ success: portResult.success, error: !portResult.success, fading: portResultFading }">
+
+            <div
+              v-if="portResult"
+              class="port-result"
+              :class="{
+                success: portResult.success,
+                error: !portResult.success,
+                fading: portResultFading,
+              }"
+            >
               <div class="result-icon">
-                <svg v-if="portResult.success" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <svg
+                  v-if="portResult.success"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                >
                   <path d="M9 12l2 2 4-4" />
                   <circle cx="12" cy="12" r="10" />
                 </svg>
@@ -654,8 +674,6 @@ const openNetworkSettings = () => {
   console.log('打开网络设置')
 }
 
-
-
 // 清除端口结果（带淡出效果）
 const clearPortResult = () => {
   if (portResult.value) {
@@ -670,39 +688,39 @@ const clearPortResult = () => {
 // 杀死端口进程
 const handleKillPort = async () => {
   if (!portInput.value || portKilling.value) return
-  
+
   const port = parseInt(portInput.value)
   if (isNaN(port) || port < 1 || port > 65535) {
     portResult.value = {
       success: false,
-      error: '请输入有效的端口号 (1-65535)'
+      error: '请输入有效的端口号 (1-65535)',
     }
     portResultFading.value = false
     // 3秒后清除错误消息
     setTimeout(clearPortResult, 3000)
     return
   }
-  
+
   portKilling.value = true
   portResult.value = null
   portResultFading.value = false
-  
+
   try {
     const result = await window.electronAPI.killPortProcess(port)
     portResult.value = result
     portResultFading.value = false
-    
+
     if (result.success) {
       // 成功后清空输入
       portInput.value = ''
     }
-    
+
     // 无论成功还是失败，3秒后都清除结果消息
     setTimeout(clearPortResult, 3000)
   } catch (error) {
     portResult.value = {
       success: false,
-      error: `执行失败: ${(error as Error).message}`
+      error: `执行失败: ${(error as Error).message}`,
     }
     portResultFading.value = false
     // 3秒后清除错误消息

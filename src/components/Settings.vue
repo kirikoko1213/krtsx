@@ -24,9 +24,7 @@
         <div class="panel-header">
           <h3>🖼️ 背景设置</h3>
           <div class="panel-actions">
-            <button class="btn btn-sm btn-secondary" @click="resetBackground">
-              重置默认
-            </button>
+            <button class="btn btn-sm btn-secondary" @click="resetBackground">重置默认</button>
             <button class="btn btn-sm btn-primary" @click="previewBackground">
               {{ isPreview ? '取消预览' : '预览效果' }}
             </button>
@@ -38,12 +36,16 @@
           <div class="setting-item">
             <label class="setting-label">背景图片</label>
             <div class="image-upload-area">
-              <div v-if="!backgroundSettings.image" class="upload-placeholder" @click="selectBackgroundImage">
+              <div
+                v-if="!backgroundSettings.image"
+                class="upload-placeholder"
+                @click="selectBackgroundImage"
+              >
                 <div class="upload-icon">📁</div>
                 <p>点击选择背景图片</p>
                 <p class="upload-hint">支持 JPG、PNG、GIF 等格式</p>
               </div>
-              
+
               <div v-else class="uploaded-image">
                 <img :src="backgroundPreviewUrl" alt="背景图片" class="image-preview" />
                 <div class="image-overlay">
@@ -81,9 +83,7 @@
 
           <!-- 模糊程度 -->
           <div class="setting-item">
-            <label class="setting-label">
-              模糊程度: {{ backgroundSettings.blur }}px
-            </label>
+            <label class="setting-label"> 模糊程度: {{ backgroundSettings.blur }}px </label>
             <div class="slider-container">
               <input
                 v-model.number="backgroundSettings.blur"
@@ -185,13 +185,100 @@
           <!-- 测试按钮 -->
           <div class="setting-item">
             <label class="setting-label">连接测试</label>
-            <button 
-              class="btn btn-primary" 
-              @click="testWeatherAPI" 
+            <button
+              class="btn btn-primary"
+              @click="testWeatherAPI"
               :disabled="!weatherSettings.apiKey"
             >
               测试天气API
             </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 执行设置面板 -->
+      <div v-show="activeTab === 'execution'" class="setting-panel">
+        <div class="panel-header">
+          <h3>⚡ 执行设置</h3>
+          <p class="panel-description">配置脚本执行环境</p>
+        </div>
+
+        <div class="setting-grid">
+          <!-- Shell 选择 -->
+          <div class="setting-item">
+            <label class="setting-label">首选 Shell</label>
+            <select v-model="executionSettings.preferredShell" class="setting-select">
+              <option value="auto">自动检测 (推荐)</option>
+              <option value="zsh">Zsh Shell</option>
+              <option value="bash">Bash Shell</option>
+              <option value="sh">Sh Shell</option>
+              <option value="custom">自定义路径</option>
+            </select>
+            <div class="setting-help">
+              <p><strong>自动检测</strong>：根据系统自动选择最佳 Shell</p>
+              <p><strong>Zsh</strong>：支持 ~/.zshrc 配置文件</p>
+              <p><strong>Bash</strong>：支持 ~/.bashrc 配置文件</p>
+              <p><strong>Sh</strong>：标准 Shell，兼容性最好</p>
+            </div>
+          </div>
+
+          <!-- 自定义 Shell 路径 -->
+          <div v-if="executionSettings.preferredShell === 'custom'" class="setting-item">
+            <label class="setting-label">自定义 Shell 路径</label>
+            <input
+              v-model="executionSettings.customShellPath"
+              type="text"
+              placeholder="例如: /usr/local/bin/fish"
+              class="form-input"
+            />
+            <div class="setting-help">
+              <p>请输入完整的 Shell 可执行文件路径</p>
+            </div>
+          </div>
+
+          <!-- Shell 信息显示 -->
+          <div class="setting-item full-width">
+            <label class="setting-label">当前 Shell 信息</label>
+            <div class="shell-info-card">
+              <div class="info-row">
+                <span class="info-label">系统默认 Shell:</span>
+                <span class="info-value">{{ systemShellInfo.default }}</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">当前用户 Shell:</span>
+                <span class="info-value">{{ systemShellInfo.current }}</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">可用 Shell:</span>
+                <div class="available-shells">
+                  <span v-for="shell in systemShellInfo.available" :key="shell" class="shell-tag">
+                    {{ shell }}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 环境变量加载 -->
+          <div class="setting-item">
+            <label class="setting-label">环境变量加载</label>
+            <div class="toggle-container">
+              <input
+                v-model="executionSettings.loadShellConfig"
+                type="checkbox"
+                class="toggle-input"
+                id="loadShellConfig"
+              />
+              <label for="loadShellConfig" class="toggle-label">
+                <span class="toggle-switch"></span>
+                <span class="toggle-text">{{
+                  executionSettings.loadShellConfig ? '自动加载' : '不加载'
+                }}</span>
+              </label>
+            </div>
+            <div class="setting-help">
+              <p>开启后将自动加载 ~/.zshrc, ~/.bashrc 等配置文件中的环境变量</p>
+            </div>
           </div>
         </div>
       </div>
@@ -239,9 +326,7 @@
 
           <!-- 圆角大小 -->
           <div class="setting-item">
-            <label class="setting-label">
-              圆角大小: {{ uiSettings.borderRadius }}px
-            </label>
+            <label class="setting-label"> 圆角大小: {{ uiSettings.borderRadius }}px </label>
             <div class="slider-container">
               <input
                 v-model.number="uiSettings.borderRadius"
@@ -262,19 +347,13 @@
 
       <!-- 保存设置 -->
       <div class="settings-actions">
-        <button class="btn btn-primary btn-large" @click="saveSettings">
-          💾 保存设置
-        </button>
-        <button class="btn btn-secondary btn-large" @click="loadSettings">
-          🔄 重新加载
-        </button>
+        <button class="btn btn-primary btn-large" @click="saveSettings">💾 保存设置</button>
+        <button class="btn btn-secondary btn-large" @click="loadSettings">🔄 重新加载</button>
       </div>
     </div>
 
     <!-- 成功提示 -->
-    <div v-if="showSaveSuccess" class="save-notification">
-      ✅ 设置已保存
-    </div>
+    <div v-if="showSaveSuccess" class="save-notification">✅ 设置已保存</div>
   </div>
 </template>
 
@@ -303,13 +382,13 @@ const backgroundSettings = reactive<BackgroundSettings>({
   blur: 0,
   size: 'cover',
   position: 'center center',
-  repeat: 'no-repeat'
+  repeat: 'no-repeat',
 })
 
 const uiSettings = reactive<UISettings>({
   animations: true,
   shadows: true,
-  borderRadius: 8
+  borderRadius: 8,
 })
 
 const backgroundPreviewUrl = ref('')
@@ -321,38 +400,58 @@ const activeTab = ref('background')
 const settingsTabs = [
   { id: 'background', name: '背景设置', icon: '🖼️' },
   { id: 'weather', name: '天气设置', icon: '🌤️' },
-  { id: 'ui', name: '界面设置', icon: '🎨' }
+  { id: 'execution', name: '执行设置', icon: '⚡' },
+  { id: 'ui', name: '界面设置', icon: '🎨' },
 ]
 
 // 天气设置
 const weatherSettings = reactive({
   apiKey: '',
-  defaultCity: '北京'
+  defaultCity: '北京',
+})
+
+// 执行设置
+const executionSettings = reactive({
+  preferredShell: 'auto', // auto, zsh, bash, sh
+  customShellPath: '',
+  loadShellConfig: true, // 是否加载 shell 配置文件
+})
+
+// 系统 Shell 信息
+const systemShellInfo = reactive({
+  default: '',
+  current: '',
+  available: [] as string[],
 })
 
 // 生命周期
 onMounted(() => {
   loadSettings()
+  loadSystemShellInfo()
 })
 
 // 监听设置变化，实时应用效果
-watch(() => ({ ...backgroundSettings, ...uiSettings }), () => {
-  if (isPreview.value) {
-    applyBackgroundSettings()
-  }
-}, { deep: true })
+watch(
+  () => ({ ...backgroundSettings, ...uiSettings }),
+  () => {
+    if (isPreview.value) {
+      applyBackgroundSettings()
+    }
+  },
+  { deep: true }
+)
 
 // 选择背景图片
 async function selectBackgroundImage() {
   try {
     const result = await window.electronAPI.selectBackgroundImage()
-    
+
     if (!result.canceled && result.filePaths.length > 0) {
       const sourcePath = result.filePaths[0]
-      
+
       // 保存图片到应用数据目录
       const saveResult = await window.electronAPI.saveBackgroundImage(sourcePath)
-      
+
       if (saveResult.success) {
         backgroundSettings.image = saveResult.data
         await updateBackgroundPreview()
@@ -413,7 +512,7 @@ function applyBackgroundSettings() {
     bodyElement.style.backgroundPosition = backgroundSettings.position
     bodyElement.style.backgroundRepeat = backgroundSettings.repeat
     bodyElement.style.backgroundAttachment = 'fixed'
-    
+
     // 添加覆盖层到body
     let overlay = document.querySelector('.background-overlay') as HTMLElement
     if (!overlay) {
@@ -421,7 +520,7 @@ function applyBackgroundSettings() {
       overlay.className = 'background-overlay'
       bodyElement.appendChild(overlay)
     }
-    
+
     // 设置覆盖层样式
     overlay.style.position = 'fixed'
     overlay.style.top = '0'
@@ -433,7 +532,7 @@ function applyBackgroundSettings() {
     overlay.style.background = `rgba(255, 255, 255, ${1 - backgroundSettings.opacity})`
     overlay.style.backdropFilter = `blur(${backgroundSettings.blur}px)`
     ;(overlay.style as any).webkitBackdropFilter = `blur(${backgroundSettings.blur}px)`
-    
+
     // 让应用组件背景透明化
     makeComponentsTransparent()
   } else {
@@ -447,7 +546,7 @@ function makeComponentsTransparent() {
   if (appElement) {
     appElement.style.background = 'transparent'
   }
-  
+
   // 设置其他组件的背景透明度
   const style = document.createElement('style')
   style.id = 'background-transparency'
@@ -503,13 +602,13 @@ function makeComponentsTransparent() {
       -webkit-backdrop-filter: blur(10px);
     }
   `
-  
+
   // 移除旧的样式
   const oldStyle = document.querySelector('#background-transparency')
   if (oldStyle) {
     oldStyle.remove()
   }
-  
+
   document.head.appendChild(style)
 }
 
@@ -523,18 +622,18 @@ function removeBackgroundSettings() {
     bodyElement.style.backgroundRepeat = ''
     bodyElement.style.backgroundAttachment = ''
   }
-  
+
   const overlay = document.querySelector('.background-overlay')
   if (overlay) {
     overlay.remove()
   }
-  
+
   // 移除透明度样式
   const transparencyStyle = document.querySelector('#background-transparency')
   if (transparencyStyle) {
     transparencyStyle.remove()
   }
-  
+
   // 恢复应用背景
   const appElement = document.querySelector('.app') as HTMLElement
   if (appElement) {
@@ -560,19 +659,33 @@ async function testWeatherAPI() {
     alert('请先设置API Key')
     return
   }
-  
+
   try {
     // 先保存当前设置以便测试
     await saveSettings()
-    
+
     const result = await window.electronAPI.getWeather(weatherSettings.defaultCity)
     if (result.success) {
-      alert(`天气API测试成功！\n城市: ${result.data.cityName}\n天气: ${result.data.weather}\n温度: ${result.data.temperature}°C`)
+      alert(
+        `天气API测试成功！\n城市: ${result.data.cityName}\n天气: ${result.data.weather}\n温度: ${result.data.temperature}°C`
+      )
     } else {
       alert(`天气API测试失败: ${result.error}`)
     }
   } catch (error) {
     alert(`测试失败: ${error}`)
+  }
+}
+
+// 加载系统 Shell 信息
+async function loadSystemShellInfo() {
+  try {
+    const result = await window.electronAPI.getSystemShellInfo()
+    if (result.success) {
+      Object.assign(systemShellInfo, result.data)
+    }
+  } catch (error) {
+    console.error('加载系统Shell信息失败:', error)
   }
 }
 
@@ -582,16 +695,17 @@ async function saveSettings() {
     const settings = {
       background: { ...backgroundSettings },
       ui: { ...uiSettings },
+      execution: { ...executionSettings },
       weatherApiKey: weatherSettings.apiKey,
-      defaultCity: weatherSettings.defaultCity
+      defaultCity: weatherSettings.defaultCity,
     }
-    
+
     const result = await window.electronAPI.saveAppSettings(settings)
-    
+
     if (result.success) {
       // 应用设置
       applyBackgroundSettings()
-      
+
       // 显示保存成功提示
       showSaveSuccess.value = true
       setTimeout(() => {
@@ -607,21 +721,26 @@ async function saveSettings() {
 async function loadSettings() {
   try {
     const result = await window.electronAPI.getAppSettings()
-    
+
     if (result.success && result.data) {
       const settings = result.data
-      
+
       // 加载背景设置
       if (settings.background) {
         Object.assign(backgroundSettings, settings.background)
         await updateBackgroundPreview()
       }
-      
+
       // 加载UI设置
       if (settings.ui) {
         Object.assign(uiSettings, settings.ui)
       }
-      
+
+      // 加载执行设置
+      if (settings.execution) {
+        Object.assign(executionSettings, settings.execution)
+      }
+
       // 加载天气设置
       if (settings.weatherApiKey) {
         weatherSettings.apiKey = settings.weatherApiKey
@@ -629,7 +748,7 @@ async function loadSettings() {
       if (settings.defaultCity) {
         weatherSettings.defaultCity = settings.defaultCity
       }
-      
+
       // 应用加载的设置
       await nextTick()
       applyBackgroundSettings()
@@ -1042,24 +1161,91 @@ async function loadSettings() {
   }
 }
 
+/* 执行设置专用样式 */
+.panel-description {
+  color: var(--color-text-secondary);
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.setting-help {
+  margin-top: 0.5rem;
+}
+
+.setting-help p {
+  margin: 0.25rem 0;
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+  line-height: 1.4;
+}
+
+.shell-info-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.info-row:last-child {
+  margin-bottom: 0;
+}
+
+.info-label {
+  font-weight: 500;
+  color: var(--color-text-primary);
+  font-size: 0.9rem;
+}
+
+.info-value {
+  font-family: monospace;
+  background: var(--color-background);
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  color: var(--color-text-primary);
+}
+
+.available-shells {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.shell-tag {
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+  padding: 0.25rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border: 1px solid var(--color-primary);
+}
+
 /* 响应式设计 */
 @media (max-width: 768px) {
   .settings {
     padding: 1rem;
   }
-  
+
   .setting-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .panel-header {
     flex-direction: column;
     gap: 1rem;
     align-items: flex-start;
   }
-  
+
   .settings-actions {
     flex-direction: column;
   }
 }
-</style> 
+</style>

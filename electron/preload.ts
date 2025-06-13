@@ -60,6 +60,11 @@ const electronAPI = {
   htmlEncode: (text: string) => ipcRenderer.invoke('html-encode', text),
   htmlDecode: (encodedText: string) => ipcRenderer.invoke('html-decode', encodedText),
   
+  // 环境变量管理
+  getEnvironmentVariables: () => ipcRenderer.invoke('get-environment-variables'),
+  setEnvironmentVariable: (name: string, value: string, isSystem?: boolean) => ipcRenderer.invoke('set-environment-variable', name, value, isSystem),
+  deleteEnvironmentVariable: (name: string) => ipcRenderer.invoke('delete-environment-variable', name),
+  
   // 设置管理
   selectBackgroundImage: () => ipcRenderer.invoke('select-background-image'),
   saveBackgroundImage: (sourcePath: string) => ipcRenderer.invoke('save-background-image', sourcePath),
@@ -74,6 +79,9 @@ const electronAPI = {
   savePomodoroStats: (stats: any) => ipcRenderer.invoke('save-pomodoro-stats', stats),
   getPomodoroStats: () => ipcRenderer.invoke('get-pomodoro-stats'),
   getPomodoroHistory: () => ipcRenderer.invoke('get-pomodoro-history'),
+  
+  // Shell 配置管理
+  getSystemShellInfo: () => ipcRenderer.invoke('get-system-shell-info'),
   
   // 事件监听
   onScriptOutput: (callback: (output: ScriptOutput) => void) => {

@@ -22,6 +22,7 @@
       <ScriptManager v-show="currentTab === 'scripts'" />
       <PomodoroTimer v-show="currentTab === 'pomodoro'" />
       <CodeConverter v-show="currentTab === 'converter'" />
+      <EnvManager v-show="currentTab === 'envmanager'" />
       <Settings v-show="currentTab === 'settings'" />
     </main>
   </div>
@@ -33,6 +34,7 @@ import Dashboard from './components/Dashboard.vue'
 import ScriptManager from './components/ScriptManager.vue'
 import PomodoroTimer from './components/PomodoroTimer.vue'
 import CodeConverter from './components/CodeConverter.vue'
+import EnvManager from './components/EnvManager.vue'
 import Settings from './components/Settings.vue'
 import ThemeSwitcher from './components/ThemeSwitcher.vue'
 import { useTheme } from './composables/useTheme'
@@ -44,7 +46,8 @@ const tabs = [
   { id: 'scripts', label: '脚本管理' },
   { id: 'pomodoro', label: '番茄钟' },
   { id: 'converter', label: '转码工具' },
-  { id: 'settings', label: '设置' }
+  { id: 'envmanager', label: '环境变量' },
+  { id: 'settings', label: '设置' },
 ]
 
 // 初始化主题系统
@@ -196,4 +199,4 @@ onMounted(() => {
   max-width: 400px;
   line-height: 1.6;
 }
-</style> 
+</style>
